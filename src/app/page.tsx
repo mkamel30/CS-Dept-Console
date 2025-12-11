@@ -1,5 +1,9 @@
+
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/firebase";
 import {
   Card,
   CardContent,
@@ -19,7 +23,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
-import { Activity, Package, AlertCircle, Wrench } from "lucide-react"
+import { Activity, Package, AlertCircle, Wrench, Loader2 } from "lucide-react"
 
 const kpiData = [
   { title: "طلبات مفتوحة", value: "78", icon: Wrench, change: "+5.2% عن الشهر الماضي" },
@@ -45,6 +49,24 @@ const maintenanceCostData = [
 ]
 
 export default function DashboardPage() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mr-4 text-muted-foreground">...جاري التحقق من تسجيل الدخول</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -72,7 +94,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={requestStatusData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" tickFormatter={(value) => value.length > 10 ? `${value.substring(0, 10)}...` : value} />
+                <XAxis dataKey="status" tickFormatter={(value) => value.length > 10 ? `${'\''.substring(0, 10)}...` : value} />
                 <YAxis />
                 <Tooltip
                   contentStyle={{

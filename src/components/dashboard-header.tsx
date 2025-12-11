@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link"
@@ -7,8 +8,13 @@ import {
   Search,
   User,
   LogOut,
+  LogIn,
   Settings as SettingsIcon,
 } from "lucide-react"
+import { useAuth, useUser } from "@/firebase"
+import { signOut } from "firebase/auth"
+import { useRouter } from "next/navigation"
+
 
 import {
   Breadcrumb,
@@ -44,10 +50,20 @@ const breadcrumbNameMap: { [key: string]: string } = {
 
 export function DashboardHeader() {
   const pathname = usePathname();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    if (auth) {
+      await signOut(auth);
+      router.push('/login');
+    }
+  };
 
   const generateBreadcrumbs = () => {
+    if (!user) return null;
     const pathSegments = pathname.split('/').filter(i => i);
-    let currentPath = '';
     
     return (
       <Breadcrumb className="hidden md:flex">
@@ -79,29 +95,35 @@ export function DashboardHeader() {
       </Breadcrumb>
     );
   };
+  let currentPath = '';
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button size="icon" variant="outline" className="sm:hidden">
-            <PanelLeft className="h-5 w-5" />
-            <span className="sr-only">فتح القائمة</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="right" className="sm:max-w-xs dark">
-           <SidebarNav isMobile={true} />
-        </SheetContent>
-      </Sheet>
+      {user && (
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button size="icon" variant="outline" className="sm:hidden">
+              <PanelLeft className="h-5 w-5" />
+              <span className="sr-only">فتح القائمة</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="sm:max-w-xs dark">
+            <SidebarNav isMobile={true} />
+          </SheetContent>
+        </Sheet>
+      )}
       
       {generateBreadcrumbs()}
 
       <div className="relative ml-auto flex-1 md:grow-0">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        {user && (
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        )}
         <Input
           type="search"
           placeholder="بحث..."
-          className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+          className={`w-full rounded-lg bg-background md:w-[200px] lg:w-[320px] ${user ? 'pl-8' : ''}`}
+          disabled={!user}
         />
       </div>
       <DropdownMenu>
@@ -110,26 +132,40 @@ export function DashboardHeader() {
             variant="outline"
             size="icon"
             className="overflow-hidden rounded-full"
+            disabled={isUserLoading}
           >
             <User className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>حسابي</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <SettingsIcon className="mr-2 h-4 w-4" />
-            الإعدادات
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
-            ملفي الشخصي
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <LogOut className="mr-2 h-4 w-4" />
-            تسجيل الخروج
-          </DropdownMenuItem>
+          {user ? (
+            <>
+              <DropdownMenuLabel>{user.email || 'حسابي'}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push('/settings')}>
+                <SettingsIcon className="mr-2 h-4 w-4" />
+                الإعدادات
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <User className="mr-2 h-4 w-4" />
+                ملفي الشخصي
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                تسجيل الخروج
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <>
+              <DropdownMenuLabel>مرحباً</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push('/login')}>
+                <LogIn className="mr-2 h-4 w-4" />
+                تسجيل الدخول
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
