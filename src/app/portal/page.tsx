@@ -1,9 +1,11 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { Loader2, Search } from 'lucide-react';
+import { useDebounce } from 'use-debounce';
 
 import { Customer, PosMachine, SimCard } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -34,14 +36,69 @@ export default function CustomerPortalPage() {
 
   const [searchType, setSearchType] = useState<SearchType>('customerId');
   const [searchValue, setSearchValue] = useState('');
+  const [debouncedSearchValue] = useDebounce(searchValue, 300);
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isSuggestionsVisible, setSuggestionsVisible] = useState(false);
+
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [machines, setMachines] = useState<PosMachine[]>([]);
   const [simCards, setSimCards] = useState<SimCard[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setSuggestionsVisible(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+
+  const fetchSuggestions = useCallback(async () => {
+    if (!firestore || debouncedSearchValue.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    let q;
+    const fieldToSearch = searchType === 'customerId' ? 'bkcode' : searchType;
+    const collectionName = searchType === 'customerId' ? 'customers' : 'posMachines';
+
+    q = query(
+        collection(firestore, collectionName),
+        where(fieldToSearch, '>=', debouncedSearchValue),
+        where(fieldToSearch, '<=', debouncedSearchValue + '\uf8ff'),
+        limit(5)
+    );
+    
+    try {
+      const querySnapshot = await getDocs(q);
+      const newSuggestions = querySnapshot.docs.map(doc => doc.data()[fieldToSearch]);
+      setSuggestions(newSuggestions);
+      if(newSuggestions.length > 0) {
+        setSuggestionsVisible(true);
+      }
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      setSuggestions([]);
+    }
+  }, [firestore, debouncedSearchValue, searchType]);
+
+  useEffect(() => {
+    fetchSuggestions();
+  }, [debouncedSearchValue, fetchSuggestions]);
+
+  const handleSearch = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setSuggestionsVisible(false);
     if (!firestore || !searchValue) {
       toast({
         variant: 'destructive',
@@ -137,6 +194,11 @@ export default function CustomerPortalPage() {
     }
   };
 
+  const handleSuggestionClick = (suggestion: string) => {
+    setSearchValue(suggestion);
+    setSuggestionsVisible(false);
+  }
+
   return (
     <div className="flex-1 space-y-6">
       <Card>
@@ -148,21 +210,40 @@ export default function CustomerPortalPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearch} className="flex items-end gap-2">
-            <div className="flex-grow">
+            <div className="flex-grow relative" ref={searchContainerRef}>
               <label htmlFor="search-value" className="text-sm font-medium">قيمة البحث</label>
               <Input
                 id="search-value"
                 placeholder="أدخل القيمة هنا..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
+                onFocus={() => setSuggestionsVisible(true)}
                 disabled={!user || isLoading}
+                autoComplete="off"
               />
+              {isSuggestionsVisible && suggestions.length > 0 && (
+                <div className="absolute top-full mt-1 w-full rounded-md border bg-background shadow-lg z-10">
+                    {suggestions.map((s, i) => (
+                        <div 
+                            key={i} 
+                            onClick={() => handleSuggestionClick(s)}
+                            className="px-3 py-2 text-sm cursor-pointer hover:bg-accent"
+                        >
+                            {s}
+                        </div>
+                    ))}
+                </div>
+              )}
             </div>
             <div>
                 <label htmlFor="search-type" className="text-sm font-medium">نوع البحث</label>
                 <Select
                     value={searchType}
-                    onValueChange={(v) => setSearchType(v as SearchType)}
+                    onValueChange={(v) => {
+                        setSearchType(v as SearchType);
+                        setSearchValue('');
+                        setSuggestions([]);
+                    }}
                     disabled={!user || isLoading}
                 >
                     <SelectTrigger id="search-type" className="w-[180px]">
