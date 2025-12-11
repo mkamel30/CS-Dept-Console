@@ -68,84 +68,16 @@ service cloud.firestore {
       return isManager() || isAdmin();
     }
 
-    /**
-     * State Checks
-     * Verifies that a document already exists. Crucial for update/delete operations.
-     */
-    function isExistingDoc() {
-      return resource != null;
-    }
-
-    /**
-     * Task-Specific Permissions
-     * Checks if the requesting user is the technician assigned to the request.
-     */
-    function isAssignedTechnician() {
-      return isExistingDoc() && resource.data.assignedTechnicianId == request.auth.uid;
-    }
-
-    /**
-     * Prototyping Data Validation
-     * These functions only validate fields critical for authorization and relational
-     * integrity. They do not enforce the full data schema.
-     */
-    function hasValidUserProfileDataOnCreate(userId) {
-      return request.resource.data.id == userId;
-    }
-    function hasImmutableUserProfileDataOnUpdate() {
-      return request.resource.data.id == resource.data.id;
-    }
-    function hasValidAssetDataOnCreate(assetId) {
-      return request.resource.data.id == assetId;
-    }
-    function hasValidRequestDataOnCreate(assetId, requestId) {
-      return request.resource.data.id == requestId && request.resource.data.assetId == assetId;
-    }
-    function hasImmutableRequestDataOnUpdate() {
-      return request.resource.data.id == resource.data.id && request.resource.data.assetId == resource.data.assetId;
-    }
-    function hasValidInventoryDataOnCreate(inventoryId) {
-      return request.resource.data.id == inventoryId;
-    }
-    function hasValidReportDataOnCreate(reportId) {
-      return request.resource.data.id == reportId;
-    }
-
 
     // =====================================================================
     // Role Collections (Admin-managed)
     // =====================================================================
-
-    /**
-     * @description Defines admin users. This collection is a lookup table for security rules.
-     *   It MUST NOT be writable by any client to prevent privilege escalation.
-     * @path /roles_admin/{uid}
-     * @allow (read/write) - No client access is permitted.
-     * @deny (read/write) - Any client, regardless of role, trying to access this collection.
-     * @principle Prevents client-side modification of authorization roles.
-     */
     match /roles_admin/{uid} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read, write: if false;
     }
 
-    /**
-     * @description Defines manager users. This collection is a lookup table for security rules.
-     *   It MUST NOT be writable by any client to prevent privilege escalation.
-     * @path /roles_manager/{uid}
-     * @allow (read/write) - No client access is permitted.
-     * @deny (read/write) - Any client, regardless of role, trying to access this collection.
-     * @principle Prevents client-side modification of authorization roles.
-     */
     match /roles_manager/{uid} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read, write: if false;
     }
 
 
@@ -154,83 +86,50 @@ service cloud.firestore {
     // =====================================================================
 
     /**
-     * @description Manages user profile data.
-     * @path /users/{userId}
-     * @allow (create) - A new user creating their own profile document. `auth.uid` must match `{userId}`.
-     * @allow (get, update, delete) - An existing user accessing their own profile. Admins can also read profiles.
-     * @deny (list) - Any user trying to list all user profiles.
-     * @deny (update) - A user trying to modify another user's profile.
-     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     * User profiles.
+     * read: admin, or owner
+     * write: owner
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if false;
-      allow create: if isOwner(userId) && hasValidUserProfileDataOnCreate(userId);
-      allow update: if isOwner(userId) && isExistingDoc() && hasImmutableUserProfileDataOnUpdate();
-      allow delete: if isOwner(userId) && isExistingDoc();
+      allow list: if false; // Do not allow listing all users
+      allow create: if isOwner(userId);
+      allow update, delete: if isOwner(userId);
+    }
+    
+    /**
+     * Customer information.
+     * Access should be restricted to authenticated users.
+     * For now, any signed-in user can read/write.
+     */
+    match /customers/{bkcode} {
+      allow read, write: if isSignedIn();
     }
 
     /**
-     * @description Manages asset information for the organization.
-     * @path /assets/{assetId}
-     * @allow (get, list) - Any authenticated user (e.g., technician, manager) can view asset information.
-     * @allow (create, update, delete) - Only users with 'Manager' or 'Admin' roles can manage the asset catalog.
-     * @deny (create) - A user without a manager or admin role trying to add an asset.
-     * @principle Enforces role-based access for write operations while allowing reads for all internal users.
+     * POS machines linked to customers.
+     * Access should be restricted to authenticated users.
      */
-    match /assets/{assetId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isManagerOrAdmin() && hasValidAssetDataOnCreate(assetId);
-      allow update: if isManagerOrAdmin() && isExistingDoc();
-      allow delete: if isManagerOrAdmin() && isExistingDoc();
-
-      /**
-       * @description Manages maintenance requests for a specific asset.
-       * @path /assets/{assetId}/maintenanceRequests/{requestId}
-       * @allow (get, list) - Any authenticated user can view the maintenance history of an asset.
-       * @allow (update) - A Manager/Admin, or the specific technician assigned to the request.
-       * @deny (update) - A technician trying to update a request they are not assigned to.
-       * @deny (delete) - A technician trying to delete a maintenance request.
-       * @principle Combines role-based permissions with document-specific permissions (assigned technician).
-       */
-      match /maintenanceRequests/{requestId} {
-        allow get: if isSignedIn();
-        allow list: if isSignedIn();
-        allow create: if isManagerOrAdmin() && hasValidRequestDataOnCreate(assetId, requestId);
-        allow update: if (isManagerOrAdmin() || isAssignedTechnician()) && isExistingDoc() && hasImmutableRequestDataOnUpdate();
-        allow delete: if isManagerOrAdmin() && isExistingDoc();
-      }
+    match /posMachines/{machineId} {
+      allow read, write: if isSignedIn();
     }
-
+    
     /**
-     * @description Manages inventory of spare parts and supplies.
-     * @path /inventory/{inventoryId}
-     * @allow (read, write) - Only users with 'Manager' or 'Admin' roles can access or manage inventory.
-     * @deny (read, write) - Any user who is not a manager or admin.
-     * @principle Restricts access to sensitive operational data to authorized roles.
+     * SIM cards linked to customers.
+     * Access should be restricted to authenticated users.
      */
-    match /inventory/{inventoryId} {
-      allow get: if isManagerOrAdmin();
-      allow list: if isManagerOrAdmin();
-      allow create: if isManagerOrAdmin() && hasValidInventoryDataOnCreate(inventoryId);
-      allow update: if isManagerOrAdmin() && isExistingDoc();
-      allow delete: if isManagerOrAdmin() && isExistingDoc();
+    match /simCards/{simCardId} {
+       allow read, write: if isSignedIn();
     }
-
+    
     /**
-     * @description Manages generated system reports.
-     * @path /reports/{reportId}
-     * @allow (read, write) - Only users with 'Manager' or 'Admin' roles can access or manage reports.
-     * @deny (read, write) - Any user who is not a manager or admin.
-     * @principle Restricts access to potentially sensitive aggregate data to authorized roles.
+     * Maintenance requests.
+     * Access should be restricted to authenticated users.
      */
-    match /reports/{reportId} {
-      allow get: if isManagerOrAdmin();
-      allow list: if isManagerOrAdmin();
-      allow create: if isManagerOrAdmin() && hasValidReportDataOnCreate(reportId);
-      allow update: if isManagerOrAdmin() && isExistingDoc();
-      allow delete: if isManagerOrAdmin() && isExistingDoc();
+    match /maintenanceRequests/{requestId} {
+      allow read, write: if isSignedIn();
     }
   }
 }
+
+    
