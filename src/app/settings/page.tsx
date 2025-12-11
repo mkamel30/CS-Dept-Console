@@ -24,15 +24,22 @@ import {
 } from "@/components/ui/table"
 import { Loader2, Trash2, RefreshCw } from "lucide-react";
 import { MachineParameter, PosMachine } from "@/lib/types";
-import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, useUser, useAuth } from "@/firebase";
 import { collection, query, doc, getDocs, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { updateProfile, updateEmail } from "firebase/auth";
 
 
 export default function SettingsPage() {
   const firestore = useFirestore();
+  const auth = useAuth();
+  const { user } = useUser();
   const { toast } = useToast();
+
   const [isUpdating, setIsUpdating] = React.useState(false);
+  const [isProfileUpdating, setIsProfileUpdating] = React.useState(false);
+  const [name, setName] = React.useState('');
+  const [email, setEmail] = React.useState('');
 
   const parametersQuery = useMemoFirebase(
     () => firestore ? query(collection(firestore, "machineParameters")) : null,
@@ -42,6 +49,13 @@ export default function SettingsPage() {
   const { data: parameters, isLoading } = useCollection<MachineParameter>(parametersQuery);
 
   const [newParam, setNewParam] = React.useState({ prefix: "", model: "", manufacturer: "" });
+
+  React.useEffect(() => {
+    if (user) {
+      setName(user.displayName || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
 
   const handleAddParameter = () => {
     if (!firestore) {
@@ -113,6 +127,31 @@ export default function SettingsPage() {
       setIsUpdating(false);
     }
   };
+
+  const handleProfileUpdate = async () => {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'خطأ', description: 'يجب تسجيل الدخول أولاً.' });
+        return;
+    }
+
+    setIsProfileUpdating(true);
+
+    try {
+        if (user.displayName !== name) {
+            await updateProfile(user, { displayName: name });
+        }
+        if (user.email !== email) {
+            await updateEmail(user, email);
+        }
+        toast({ title: 'تم التحديث بنجاح', description: 'تم تحديث بيانات ملفك الشخصي.' });
+    } catch (error: any) {
+        console.error('Error updating profile:', error);
+        toast({ variant: 'destructive', title: 'خطأ في التحديث', description: error.message });
+    } finally {
+        setIsProfileUpdating(false);
+    }
+  };
+
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
@@ -199,13 +238,16 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">الاسم</Label>
-            <Input id="name" defaultValue="مسؤول النظام" />
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} disabled={isProfileUpdating || !user} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">البريد الإلكتروني</Label>
-            <Input id="email" type="email" defaultValue="admin@local.host" />
+            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isProfileUpdating || !user} />
           </div>
-          <Button>حفظ التغييرات</Button>
+          <Button onClick={handleProfileUpdate} disabled={isProfileUpdating || !user}>
+            {isProfileUpdating && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+            حفظ التغييرات
+          </Button>
         </CardContent>
       </Card>
 
@@ -260,3 +302,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
+    
