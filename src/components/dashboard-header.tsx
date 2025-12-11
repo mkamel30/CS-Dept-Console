@@ -42,6 +42,7 @@ const breadcrumbNameMap: { [key: string]: string } = {
   '/': 'لوحة التحكم',
   '/requests': 'طلبات الصيانة',
   '/assets': 'الأصول والمعدات',
+  '/customers': 'العملاء',
   '/inventory': 'المخزون وقطع الغيار',
   '/technicians': 'الفنيون والمهام',
   '/reports': 'التقارير والتحليلات',

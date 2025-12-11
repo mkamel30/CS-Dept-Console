@@ -10,6 +10,7 @@ import {
   Users,
   FileText,
   Settings,
+  Building,
 } from 'lucide-react';
 import {
   SidebarHeader,
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/', label: 'لوحة التحكم', icon: LayoutDashboard },
   { href: '/requests', label: 'طلبات الصيانة', icon: Wrench },
   { href: '/assets', label: 'ماكينات نقاط البيع', icon: HardDrive },
+  { href: '/customers', label: 'العملاء', icon: Building },
   { href: '/inventory', label: 'المخزون', icon: Package },
   { href: '/technicians', label: 'الفنيون', icon: Users },
   { href: '/reports', label: 'التقارير', icon: FileText },
