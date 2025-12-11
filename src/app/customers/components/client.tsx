@@ -128,24 +128,24 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
         
         for (let i = 0; i < json.length; i++) {
           const item = json[i];
-          const bkcode = item.bkcode?.toString();
+          const bkcode = item["رقم العميل"]?.toString();
 
-          if (!bkcode || !item.client_name || !item.address) {
+          if (!bkcode || !item["اسم العميل"] || !item["العنوان"]) {
             missingRequiredDataCount++;
           } else if (existingBkCodes.has(bkcode)) {
             duplicateCount++;
           } else {
             const newCustomer = {
               bkcode: bkcode,
-              client_name: item.client_name.toString(),
-              address: item.address.toString(),
-              national_id: item.national_id?.toString() || '',
-              supply_office: item.supply_office?.toString() || '',
-              dept: item.dept?.toString() || '',
-              contact_person: item.contact_person?.toString() || '',
-              telephone_1: item.telephone_1?.toString() || '',
-              telephone_2: item.telephone_2?.toString() || '',
-              notes: item.notes?.toString() || '',
+              client_name: item["اسم العميل"].toString(),
+              address: item["العنوان"].toString(),
+              national_id: item["الرقم القومي"]?.toString() || '',
+              supply_office: item["مكتب التموين"]?.toString() || '',
+              dept: item["إدارة التموين"]?.toString() || '',
+              contact_person: item["الشخص المسؤول"]?.toString() || '',
+              telephone_1: item["رقم الهاتف 1"]?.toString() || '',
+              telephone_2: item["رقم الهاتف 2"]?.toString() || '',
+              notes: item["ملاحظات"]?.toString() || '',
             };
             
             addDocumentNonBlocking(customersCollection, newCustomer);
@@ -182,9 +182,10 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
 
   const handleDownloadTemplate = async () => {
     const XLSX = await import("xlsx");
-    const ws = XLSX.utils.json_to_sheet([
-      { bkcode: "", client_name: "", address: "", national_id: "", supply_office: "", dept: "", contact_person: "", telephone_1: "", telephone_2: "", notes: ""},
-    ]);
+    const ws_data = [
+      ["رقم العميل", "اسم العميل", "العنوان", "الرقم القومي", "مكتب التموين", "إدارة التموين", "الشخص المسؤول", "رقم الهاتف 1", "رقم الهاتف 2", "ملاحظات"]
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Customers");
     XLSX.writeFile(wb, "Customers_Template.xlsx");
@@ -192,7 +193,13 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
 
   const handleExportData = async () => {
      const XLSX = await import("xlsx");
-     const ws = XLSX.utils.json_to_sheet(data);
+     const exportData = data.map(d => ({
+        "رقم العميل": d.bkcode,
+        "اسم العميل": d.client_name,
+        "العنوان": d.address,
+        "رقم الهاتف": d.telephone_1
+     }));
+     const ws = XLSX.utils.json_to_sheet(exportData);
      const wb = XLSX.utils.book_new();
      XLSX.utils.book_append_sheet(wb, ws, "Current Customers");
      XLSX.writeFile(wb, "Current_Customers_Data.xlsx");
@@ -203,9 +210,8 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
     try {
       const customersCollection = collection(firestore, 'customers');
       // Check for duplicates
-      const existingQuery = await getDocs(collection(firestore, "customers"));
-      const existingBkCodes = new Set(existingQuery.docs.map(doc => doc.data().bkcode));
-      if (existingBkCodes.has(values.bkcode)) {
+      const existingQuery = await getDocs(query(collection(firestore, "customers"), where("bkcode", "==", values.bkcode)));
+      if (!existingQuery.empty) {
         toast({
           variant: "destructive",
           title: "رقم العميل موجود بالفعل",
@@ -251,138 +257,142 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onAddCustomerSubmit)} className="grid grid-cols-2 gap-4 py-4">
-                   <FormField
-                      control={form.control}
-                      name="bkcode"
-                      render={({ field }) => (
-                        <FormItem className="col-span-1">
-                          <FormLabel>رقم العميل (BKCODE) *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. 12345" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                   <FormField
-                      control={form.control}
-                      name="client_name"
-                      render={({ field }) => (
-                        <FormItem className="col-span-1">
-                          <FormLabel>اسم العميل *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="اسم العميل بالكامل" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem className="col-span-2">
-                          <FormLabel>العنوان *</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="عنوان العميل بالتفصيل" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="national_id"
-                      render={({ field }) => (
-                        <FormItem className="col-span-1">
-                          <FormLabel>الرقم القومي</FormLabel>
-                          <FormControl>
-                            <Input placeholder="14 رقم" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="telephone_1"
-                      render={({ field }) => (
-                        <FormItem className="col-span-1">
-                          <FormLabel>رقم الهاتف 1</FormLabel>
-                          <FormControl>
-                            <Input placeholder="رقم الهاتف الأساسي" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="supply_office"
-                      render={({ field }) => (
-                        <FormItem className="col-span-1">
-                          <FormLabel>مكتب التموين</FormLabel>
-                          <FormControl>
-                            <Input placeholder="اسم مكتب التموين" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="dept"
-                      render={({ field }) => (
-                        <FormItem className="col-span-1">
-                          <FormLabel>إدارة التموين</FormLabel>
-                          <FormControl>
-                            <Input placeholder="اسم الإدارة" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="contact_person"
-                      render={({ field }) => (
-                        <FormItem className="col-span-1">
-                          <FormLabel>الشخص المسؤول</FormLabel>
-                          <FormControl>
-                            <Input placeholder="اسم الشخص المسؤول" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="telephone_2"
-                      render={({ field }) => (
-                        <FormItem className="col-span-1">
-                          <FormLabel>رقم الهاتف 2</FormLabel>
-                          <FormControl>
-                            <Input placeholder="رقم هاتف إضافي" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem className="col-span-2">
-                          <FormLabel>ملاحظات</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="أي ملاحظات إضافية عن العميل" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  <DialogFooter className="col-span-2">
+                <form onSubmit={form.handleSubmit(onAddCustomerSubmit)}>
+                  <div className="max-h-[60vh] overflow-y-auto p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                          control={form.control}
+                          name="bkcode"
+                          render={({ field }) => (
+                            <FormItem className="col-span-1">
+                              <FormLabel>رقم العميل *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. 12345" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      <FormField
+                          control={form.control}
+                          name="client_name"
+                          render={({ field }) => (
+                            <FormItem className="col-span-1">
+                              <FormLabel>اسم العميل *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="اسم العميل بالكامل" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem className="col-span-2">
+                              <FormLabel>العنوان *</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="عنوان العميل بالتفصيل" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="national_id"
+                          render={({ field }) => (
+                            <FormItem className="col-span-1">
+                              <FormLabel>الرقم القومي</FormLabel>
+                              <FormControl>
+                                <Input placeholder="14 رقم" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="telephone_1"
+                          render={({ field }) => (
+                            <FormItem className="col-span-1">
+                              <FormLabel>رقم الهاتف 1</FormLabel>
+                              <FormControl>
+                                <Input placeholder="رقم الهاتف الأساسي" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="supply_office"
+                          render={({ field }) => (
+                            <FormItem className="col-span-1">
+                              <FormLabel>مكتب التموين</FormLabel>
+                              <FormControl>
+                                <Input placeholder="اسم مكتب التموين" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="dept"
+                          render={({ field }) => (
+                            <FormItem className="col-span-1">
+                              <FormLabel>إدارة التموين</FormLabel>
+                              <FormControl>
+                                <Input placeholder="اسم الإدارة" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="contact_person"
+                          render={({ field }) => (
+                            <FormItem className="col-span-1">
+                              <FormLabel>الشخص المسؤول</FormLabel>
+                              <FormControl>
+                                <Input placeholder="اسم الشخص المسؤول" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="telephone_2"
+                          render={({ field }) => (
+                            <FormItem className="col-span-1">
+                              <FormLabel>رقم الهاتف 2</FormLabel>
+                              <FormControl>
+                                <Input placeholder="رقم هاتف إضافي" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem className="col-span-2">
+                              <FormLabel>ملاحظات</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="أي ملاحظات إضافية عن العميل" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                    </div>
+                  </div>
+                  <DialogFooter className="pt-4">
                     <DialogClose asChild>
                       <Button type="button" variant="outline">إلغاء</Button>
                     </DialogClose>
@@ -455,3 +465,5 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
     </>
   );
 };
+
+    
