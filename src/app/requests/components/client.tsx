@@ -104,10 +104,11 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
     }
 
     const newRequest = {
-      machineId: selectedMachine.id,
+      customerId: customer.bkcode,
+      posMachineId: selectedMachine.id,
       machineModel: selectedMachine.model,
       machineManufacturer: selectedMachine.manufacturer,
-      customerName: customer.name,
+      customerName: customer.client_name,
       status: 'Open',
       priority: 'Medium',
       technician: 'غير معين',
@@ -166,11 +167,11 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
                       name="customerId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>رقم العميل</FormLabel>
+                          <FormLabel>رقم العميل (BKCODE)</FormLabel>
                           <div className="flex items-center space-x-2">
                             <FormControl>
                               <Input
-                                placeholder="e.g. CUST-1001"
+                                placeholder="e.g. 12345"
                                 {...field}
                               />
                             </FormControl>
@@ -187,7 +188,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
 
                 {customerMachines.length > 0 && customer && (
                     <div className="space-y-4">
-                        <h4 className="font-medium">ماكينات العميل: {customer.name}</h4>
+                        <h4 className="font-medium">ماكينات العميل: {customer.client_name}</h4>
                         <Select onValueChange={(value) => setSelectedMachine(customerMachines.find(m => m.id === value) || null)}>
                             <SelectTrigger>
                                 <SelectValue placeholder="اختر الماكينة المطلوبة" />

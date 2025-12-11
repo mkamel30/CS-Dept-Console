@@ -1,30 +1,34 @@
 
 "use client";
 
-import { useState } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where, getDocs, doc } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { RequestClient } from "./components/client";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import type { RequestColumn } from "./components/columns";
 import type { MaintenanceRequest, PosMachine, Customer } from "@/lib/types";
 
 export default function RequestsPage() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const requestsQuery = useMemoFirebase(
-    () => firestore ? query(collection(firestore, "maintenanceRequests")) : null,
-    [firestore]
+    () => (firestore && user) ? query(collection(firestore, "maintenanceRequests")) : null,
+    [firestore, user]
   );
   
-  const { data: requestsData, isLoading } = useCollection<MaintenanceRequest>(requestsQuery);
+  const { data: requestsData, isLoading: isRequestsLoading } = useCollection<MaintenanceRequest>(requestsQuery);
 
-  const formattedRequests: RequestColumn[] = requestsData ? requestsData.map(item => ({
-    ...item,
-    id: item.id,
-    createdDate: item.createdAt ? format(new Date(item.createdAt), "yyyy/MM/dd") : 'N/A',
-  })) : [];
+  const formattedRequests: RequestColumn[] = requestsData ? requestsData.map(item => {
+    const date = item.createdAt?.toDate();
+    return {
+      ...item,
+      id: item.id,
+      createdDate: date && isValid(date) ? format(date, "yyyy/MM/dd") : 'N/A',
+    };
+  }) : [];
   
+  const isLoading = isUserLoading || isRequestsLoading;
 
   const findCustomerMachines = async (customerId: string): Promise<PosMachine[]> => {
     if (!firestore) return [];
@@ -38,12 +42,17 @@ export default function RequestsPage() {
   };
 
   const findCustomer = async (customerId: string): Promise<Customer | null> => {
-    if (!firestore) return null;
-      const q = query(collection(firestore, "customers"), where("id", "==", customerId));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-          const doc = querySnapshot.docs[0];
-          return { id: doc.id, ...doc.data() } as Customer;
+      if (!firestore) return null;
+      try {
+          const customerRef = doc(firestore, "customers", customerId);
+          const docSnap = await getDocs(query(collection(firestore, "customers"), where("bkcode", "==", customerId)));
+          
+          if (!docSnap.empty) {
+              const customerDoc = docSnap.docs[0];
+              return { id: customerDoc.id, ...customerDoc.data() } as Customer;
+          }
+      } catch (e) {
+          console.error("Error fetching customer:", e);
       }
       return null;
   }

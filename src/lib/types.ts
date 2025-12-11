@@ -1,3 +1,4 @@
+
 import { Timestamp } from "firebase/firestore";
 
 // Represents a maintenance request for a POS machine.
@@ -6,8 +7,8 @@ export type MaintenanceRequest = {
   customerId: string; // The unique bkcode of the customer.
   posMachineId: string; // The ID of the POS machine document.
   customerName: string;
-  machineModel: string;
-  machineManufacturer: string;
+  machineModel?: string;
+  machineManufacturer?: string;
   createdAt: Timestamp; // Firestore Timestamp
   status: 'Open' | 'In Progress' | 'Closed' | 'Cancelled';
   priority: 'Low' | 'Medium' | 'High';
