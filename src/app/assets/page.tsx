@@ -1,6 +1,6 @@
 "use client";
 
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query } from "firebase/firestore";
 import { PosMachineClient } from "./components/client";
 import type { PosMachineColumn } from "./components/columns";
@@ -8,13 +8,14 @@ import type { PosMachine } from "@/lib/types";
 
 export default function PosMachinesPage() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const machinesQuery = useMemoFirebase(
-    () => firestore ? query(collection(firestore, "posMachines")) : null,
-    [firestore]
+    () => (firestore && user) ? query(collection(firestore, "posMachines")) : null,
+    [firestore, user]
   );
   
-  const { data: machinesData, isLoading } = useCollection<PosMachine>(machinesQuery);
+  const { data: machinesData, isLoading: isMachinesLoading } = useCollection<PosMachine>(machinesQuery);
 
   const formattedMachines: PosMachineColumn[] = machinesData ? machinesData.map(item => ({
     id: item.id,
@@ -24,6 +25,8 @@ export default function PosMachinesPage() {
     manufacturer: item.manufacturer || 'N/A',
     customerId: item.customerId,
   })) : [];
+  
+  const isLoading = isUserLoading || isMachinesLoading;
 
   return (
     <div className="flex-1 space-y-4">
