@@ -178,7 +178,7 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-2 flex-1">
                 <Label htmlFor="model">الموديل</Label>
-                <Input id="model" value={newParam.model} onChange={(e) => setNewParam({...new_param, model: e.target.value})} placeholder="e.g. S90" disabled={isUpdating} />
+                <Input id="model" value={newParam.model} onChange={(e) => setNewParam({...newParam, model: e.target.value})} placeholder="e.g. S90" disabled={isUpdating} />
               </div>
               <div className="space-y-2 flex-1">
                 <Label htmlFor="manufacturer">المصنّع</Label>
@@ -260,5 +260,3 @@ export default function SettingsPage() {
     </div>
   )
 }
-
-    
