@@ -22,17 +22,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, Trash2 } from "lucide-react";
-import { MachineParameter } from "@/lib/types";
+import { Loader2, Trash2, RefreshCw } from "lucide-react";
+import { MachineParameter, PosMachine } from "@/lib/types";
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, query, doc } from "firebase/firestore";
+import { collection, query, doc, getDocs, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 
 export default function SettingsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
   const parametersQuery = useMemoFirebase(
     () => firestore ? query(collection(firestore, "machineParameters")) : null,
     [firestore]
@@ -67,6 +68,51 @@ export default function SettingsPage() {
     toast({ title: "تم الحذف", description: "تم حذف القاعدة بنجاح." });
   };
 
+  const handleApplyRulesToAllMachines = async () => {
+    if (!firestore || !parameters || parameters.length === 0) {
+      toast({ variant: "destructive", title: "لا يمكن التحديث", description: "لا توجد قواعد لتعريف الماكينات أو لا يمكن الاتصال بالخدمة."});
+      return;
+    }
+
+    setIsUpdating(true);
+    toast({ title: "بدء التحديث", description: "جاري تحديث بيانات الماكينات... قد تستغرق العملية بعض الوقت."});
+    
+    try {
+      const machinesCollection = collection(firestore, 'posMachines');
+      const machinesSnapshot = await getDocs(machinesCollection);
+      const batch = writeBatch(firestore);
+      let updatedCount = 0;
+
+      machinesSnapshot.forEach((machineDoc) => {
+        const machine = machineDoc.data() as PosMachine;
+        const serial = machine.serialNumber;
+        
+        const matchingParam = parameters.find(p => serial.startsWith(p.prefix));
+        
+        if (matchingParam && (machine.model !== matchingParam.model || machine.manufacturer !== matchingParam.manufacturer)) {
+          const machineRef = doc(firestore, 'posMachines', machineDoc.id);
+          batch.update(machineRef, { 
+            model: matchingParam.model, 
+            manufacturer: matchingParam.manufacturer 
+          });
+          updatedCount++;
+        }
+      });
+
+      if (updatedCount > 0) {
+        await batch.commit();
+        toast({ title: "اكتمل التحديث", description: `تم تحديث بيانات ${updatedCount} ماكينة بنجاح.` });
+      } else {
+        toast({ title: "لا توجد تحديثات", description: "جميع بيانات الماكينات محدثة بالفعل." });
+      }
+
+    } catch (error) {
+      console.error("Error updating machines:", error);
+      toast({ variant: "destructive", title: "خطأ", description: "فشل تحديث بيانات الماكينات." });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
@@ -80,10 +126,18 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>تعريف الماكينات</CardTitle>
-          <CardDescription>
-            إدارة قواعد تحديد موديل ومصنع الماكينة تلقائيًا من الرقم التسلسلي.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>تعريف الماكينات</CardTitle>
+              <CardDescription>
+                إدارة قواعد تحديد موديل ومصنع الماكينة تلقائيًا من الرقم التسلسلي.
+              </CardDescription>
+            </div>
+            <Button onClick={handleApplyRulesToAllMachines} disabled={isLoading || isUpdating}>
+                {isUpdating ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <RefreshCw className="ml-2 h-4 w-4" />}
+                تطبيق القواعد على كل الماكينات
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {isLoading ? (
@@ -107,7 +161,7 @@ export default function SettingsPage() {
                   <TableCell>{param.model}</TableCell>
                   <TableCell>{param.manufacturer}</TableCell>
                   <TableCell className="text-left">
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteParameter(param.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteParameter(param.id)} disabled={isUpdating}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -120,17 +174,17 @@ export default function SettingsPage() {
           <div className="flex gap-4 items-end pt-4 border-t">
               <div className="space-y-2 flex-1">
                 <Label htmlFor="prefix">البادئة</Label>
-                <Input id="prefix" value={newParam.prefix} onChange={(e) => setNewParam({...newParam, prefix: e.target.value})} placeholder="e.g. 3C" />
+                <Input id="prefix" value={newParam.prefix} onChange={(e) => setNewParam({...newParam, prefix: e.target.value})} placeholder="e.g. 3C" disabled={isUpdating} />
               </div>
               <div className="space-y-2 flex-1">
                 <Label htmlFor="model">الموديل</Label>
-                <Input id="model" value={newParam.model} onChange={(e) => setNewParam({...newParam, model: e.target.value})} placeholder="e.g. S90" />
+                <Input id="model" value={newParam.model} onChange={(e) => setNewParam({...new_param, model: e.target.value})} placeholder="e.g. S90" disabled={isUpdating} />
               </div>
               <div className="space-y-2 flex-1">
                 <Label htmlFor="manufacturer">المصنّع</Label>
-                <Input id="manufacturer" value={newParam.manufacturer} onChange={(e) => setNewParam({...newParam, manufacturer: e.target.value})} placeholder="e.g. PAX" />
+                <Input id="manufacturer" value={newParam.manufacturer} onChange={(e) => setNewParam({...newParam, manufacturer: e.target.value})} placeholder="e.g. PAX" disabled={isUpdating} />
               </div>
-              <Button onClick={handleAddParameter}>إضافة</Button>
+              <Button onClick={handleAddParameter} disabled={isUpdating}>إضافة</Button>
           </div>
         </CardContent>
       </Card>
@@ -206,3 +260,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
+    
