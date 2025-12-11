@@ -1,3 +1,4 @@
+
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -17,6 +18,8 @@ import {
 export type RequestColumn = {
   id: string;
   machineId: string;
+  machineModel: string;
+  machineManufacturer: string;
   customerName: string;
   status: 'Open' | 'In Progress' | 'Closed' | 'Cancelled';
   priority: 'Low' | 'Medium' | 'High';
@@ -80,8 +83,12 @@ export const columns: ColumnDef<RequestColumn>[] = [
     header: "اسم العميل",
   },
   {
-    accessorKey: "machineId",
-    header: "معرف الماكينة",
+    accessorKey: "machineModel",
+    header: "الموديل",
+  },
+    {
+    accessorKey: "machineManufacturer",
+    header: "المصنع",
   },
   {
     accessorKey: "status",

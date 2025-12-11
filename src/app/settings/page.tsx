@@ -23,30 +23,26 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Trash2 } from "lucide-react";
-
-type MachineParameter = {
-  prefix: string;
-  model: string;
-  manufacturer: string;
-};
+import { machineParameters } from "@/lib/data";
+import { MachineParameter } from "@/lib/types";
 
 export default function SettingsPage() {
-  const [parameters, setParameters] = React.useState<MachineParameter[]>([
-    { prefix: "3C", model: "S90", manufacturer: "PAX" },
-    { prefix: "VX", model: "VX520", manufacturer: "Verifone" },
-    { prefix: "IC", model: "ICT220", manufacturer: "Ingenico" },
-  ]);
+  // For now, we will read from the static data, but not allow updates from the UI
+  // The next step would be to save this to a database or a config file.
+  const [parameters, setParameters] = React.useState<MachineParameter[]>(machineParameters);
   const [newParam, setNewParam] = React.useState({ prefix: "", model: "", manufacturer: "" });
 
   const handleAddParameter = () => {
-    if (newParam.prefix && newParam.model && newParam.manufacturer) {
-      setParameters([...parameters, newParam]);
-      setNewParam({ prefix: "", model: "", manufacturer: "" });
-    }
+    // This is temporarily disabled as we are not persisting the data yet.
+    // if (newParam.prefix && newParam.model && newParam.manufacturer) {
+    //   setParameters([...parameters, newParam]);
+    //   setNewParam({ prefix: "", model: "", manufacturer: "" });
+    // }
   };
 
   const handleDeleteParameter = (prefix: string) => {
-    setParameters(parameters.filter(p => p.prefix !== prefix));
+     // This is temporarily disabled as we are not persisting the data yet.
+    // setParameters(parameters.filter(p => p.prefix !== prefix));
   };
 
 
@@ -64,7 +60,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>تعريف الماكينات</CardTitle>
           <CardDescription>
-            إدارة قواعد تحديد موديل ومصنع الماكينة تلقائيًا من الرقم التسلسلي.
+            إدارة قواعد تحديد موديل ومصنع الماكينة تلقائيًا من الرقم التسلسلي. (ملاحظة: الإضافة والحذف معطلان مؤقتاً).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -84,7 +80,7 @@ export default function SettingsPage() {
                   <TableCell>{param.model}</TableCell>
                   <TableCell>{param.manufacturer}</TableCell>
                   <TableCell className="text-left">
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteParameter(param.prefix)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteParameter(param.prefix)} disabled>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -96,17 +92,17 @@ export default function SettingsPage() {
           <div className="flex gap-4 items-end pt-4 border-t">
               <div className="space-y-2 flex-1">
                 <Label htmlFor="prefix">البادئة</Label>
-                <Input id="prefix" value={newParam.prefix} onChange={(e) => setNewParam({...newParam, prefix: e.target.value})} placeholder="e.g. 3C" />
+                <Input id="prefix" value={newParam.prefix} onChange={(e) => setNewParam({...newParam, prefix: e.target.value})} placeholder="e.g. 3C" disabled />
               </div>
               <div className="space-y-2 flex-1">
                 <Label htmlFor="model">الموديل</Label>
-                <Input id="model" value={newParam.model} onChange={(e) => setNewParam({...newParam, model: e.target.value})} placeholder="e.g. S90" />
+                <Input id="model" value={newParam.model} onChange={(e) => setNewParam({...newParam, model: e.target.value})} placeholder="e.g. S90" disabled />
               </div>
               <div className="space-y-2 flex-1">
                 <Label htmlFor="manufacturer">المصنّع</Label>
-                <Input id="manufacturer" value={newParam.manufacturer} onChange={(e) => setNewParam({...newParam, manufacturer: e.target.value})} placeholder="e.g. PAX" />
+                <Input id="manufacturer" value={newParam.manufacturer} onChange={(e) => setNewParam({...newParam, manufacturer: e.target.value})} placeholder="e.g. PAX" disabled />
               </div>
-              <Button onClick={handleAddParameter}>إضافة</Button>
+              <Button onClick={handleAddParameter} disabled>إضافة</Button>
           </div>
         </CardContent>
       </Card>

@@ -1,10 +1,24 @@
-import { MaintenanceRequest, Asset, InventoryItem, Technician, PosMachine } from './types';
+import { MaintenanceRequest, Asset, InventoryItem, Technician, PosMachine, MachineParameter } from './types';
 import { subDays, subHours } from 'date-fns';
 
+export const machineParameters: MachineParameter[] = [
+    { prefix: "3C", model: "S90", manufacturer: "PAX" },
+    { prefix: "VX", model: "VX520", manufacturer: "Verifone" },
+    { prefix: "IC", model: "ICT220", manufacturer: "Ingenico" },
+];
+
+function getMachineDetails(serialNumber: string): { model: string, manufacturer: string } {
+    const foundParam = machineParameters.find(p => serialNumber.startsWith(p.prefix));
+    if (foundParam) {
+        return { model: foundParam.model, manufacturer: foundParam.manufacturer };
+    }
+    return { model: 'غير معروف', manufacturer: 'غير معروف' };
+}
+
 export const posMachines: PosMachine[] = [
-  { id: 'POS-001', serialNumber: 'SN-A123', model: 'Verifone VX520', customer: { id: 'CUST-1001', name: 'متجر النجاح' } },
-  { id: 'POS-002', serialNumber: 'SN-B456', model: 'Ingenico ICT220', customer: { id: 'CUST-1001', name: 'متجر النجاح' } },
-  { id: 'POS-003', serialNumber: 'SN-C789', model: 'PAX S80', customer: { id: 'CUST-1002', name: 'صيدلية الشفاء' } },
+  { id: 'POS-001', serialNumber: 'VX-A123', ...getMachineDetails('VX-A123'), customer: { id: 'CUST-1001', name: 'متجر النجاح' } },
+  { id: 'POS-002', serialNumber: 'IC-B456', ...getMachineDetails('IC-B456'), customer: { id: 'CUST-1001', name: 'متجر النجاح' } },
+  { id: 'POS-003', serialNumber: '3C-C789', ...getMachineDetails('3C-C789'), customer: { id: 'CUST-1002', name: 'صيدلية الشفاء' } },
 ];
 
 

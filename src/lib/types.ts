@@ -12,10 +12,17 @@ export type PosMachine = {
   id: string;
   serialNumber: string;
   model: string;
+  manufacturer: string;
   customer: {
     id: string;
     name: string;
   };
+};
+
+export type MachineParameter = {
+  prefix: string;
+  model: string;
+  manufacturer: string;
 };
 
 

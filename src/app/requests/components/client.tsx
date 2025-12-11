@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -90,6 +91,8 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) =
     const newRequest: RequestColumn = {
       id: `REQ-${Math.floor(Math.random() * 1000)}`,
       machineId: selectedMachine.id,
+      machineModel: selectedMachine.model,
+      machineManufacturer: selectedMachine.manufacturer,
       customerName: selectedMachine.customer.name,
       status: 'Open',
       priority: 'Medium', // Default priority
@@ -167,7 +170,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) =
                             <SelectContent>
                                 {customerMachines.map(machine => (
                                     <SelectItem key={machine.id} value={machine.id}>
-                                        {machine.model} ({machine.serialNumber})
+                                        {machine.model} ({machine.serialNumber}) - {machine.manufacturer}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
