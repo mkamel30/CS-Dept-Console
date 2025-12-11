@@ -50,11 +50,12 @@ interface CustomerClientProps {
 }
 
 const formSchema = z.object({
-  bkcode: z.string().min(1, { message: "BKCODE مطلوب." }),
+  bkcode: z.string().min(1, { message: "رقم العميل مطلوب." }),
   client_name: z.string().min(1, { message: "اسم العميل مطلوب." }),
   address: z.string().min(1, { message: "العنوان مطلوب." }),
-  national_id: z.string().min(1, { message: "الرقم القومي مطلوب." }),
+  national_id: z.string().optional(),
   supply_office: z.string().optional(),
+  dept: z.string().optional(),
   contact_person: z.string().optional(),
   telephone_1: z.string().optional(),
   telephone_2: z.string().optional(),
@@ -78,6 +79,7 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
       address: "",
       national_id: "",
       supply_office: "",
+      dept: "",
       contact_person: "",
       telephone_1: "",
       telephone_2: "",
@@ -128,7 +130,7 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
           const item = json[i];
           const bkcode = item.bkcode?.toString();
 
-          if (!bkcode || !item.client_name || !item.address || !item.national_id) {
+          if (!bkcode || !item.client_name || !item.address) {
             missingRequiredDataCount++;
           } else if (existingBkCodes.has(bkcode)) {
             duplicateCount++;
@@ -137,8 +139,9 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
               bkcode: bkcode,
               client_name: item.client_name.toString(),
               address: item.address.toString(),
-              national_id: item.national_id.toString(),
+              national_id: item.national_id?.toString() || '',
               supply_office: item.supply_office?.toString() || '',
+              dept: item.dept?.toString() || '',
               contact_person: item.contact_person?.toString() || '',
               telephone_1: item.telephone_1?.toString() || '',
               telephone_2: item.telephone_2?.toString() || '',
@@ -180,7 +183,7 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
   const handleDownloadTemplate = async () => {
     const XLSX = await import("xlsx");
     const ws = XLSX.utils.json_to_sheet([
-      { bkcode: "", client_name: "", address: "", national_id: "", supply_office: "", contact_person: "", telephone_1: "", telephone_2: "", notes: ""},
+      { bkcode: "", client_name: "", address: "", national_id: "", supply_office: "", dept: "", contact_person: "", telephone_1: "", telephone_2: "", notes: ""},
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Customers");
@@ -205,8 +208,8 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
       if (existingBkCodes.has(values.bkcode)) {
         toast({
           variant: "destructive",
-          title: "BKCODE موجود بالفعل",
-          description: "هذا الـ BKCODE مسجل لعميل آخر. يرجى استخدام كود فريد.",
+          title: "رقم العميل موجود بالفعل",
+          description: "هذا الرقم مسجل لعميل آخر. يرجى استخدام رقم فريد.",
         });
         return;
       }
@@ -240,7 +243,7 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
                 إضافة عميل يدوياً
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>إضافة عميل جديد</DialogTitle>
                 <DialogDescription>
@@ -254,7 +257,7 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
                       name="bkcode"
                       render={({ field }) => (
                         <FormItem className="col-span-1">
-                          <FormLabel>BKCODE *</FormLabel>
+                          <FormLabel>رقم العميل (BKCODE) *</FormLabel>
                           <FormControl>
                             <Input placeholder="e.g. 12345" {...field} />
                           </FormControl>
@@ -293,7 +296,7 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
                       name="national_id"
                       render={({ field }) => (
                         <FormItem className="col-span-1">
-                          <FormLabel>الرقم القومي *</FormLabel>
+                          <FormLabel>الرقم القومي</FormLabel>
                           <FormControl>
                             <Input placeholder="14 رقم" {...field} />
                           </FormControl>
@@ -309,6 +312,32 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
                           <FormLabel>رقم الهاتف 1</FormLabel>
                           <FormControl>
                             <Input placeholder="رقم الهاتف الأساسي" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="supply_office"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>مكتب التموين</FormLabel>
+                          <FormControl>
+                            <Input placeholder="اسم مكتب التموين" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="dept"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>إدارة التموين</FormLabel>
+                          <FormControl>
+                            <Input placeholder="اسم الإدارة" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -420,11 +449,9 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
           searchKeys={["bkcode", "client_name"]} 
           columns={columns} 
           data={data} 
-          searchPlaceholder="بحث بالـ BKCODE أو اسم العميل..." 
+          searchPlaceholder="بحث برقم العميل أو اسم العميل..." 
         />
       )}
     </>
   );
 };
-
-    

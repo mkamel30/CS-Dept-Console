@@ -44,7 +44,7 @@ export const columns: ColumnDef<CustomerColumn>[] = [
   },
   {
     accessorKey: "bkcode",
-    header: "BKCODE",
+    header: "رقم العميل",
   },
   {
     accessorKey: "client_name",
