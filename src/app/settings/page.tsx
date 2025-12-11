@@ -1,3 +1,7 @@
+
+"use client";
+
+import * as React from "react";
 import {
   Card,
   CardContent,
@@ -10,8 +14,42 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Trash2 } from "lucide-react";
+
+type MachineParameter = {
+  prefix: string;
+  model: string;
+  manufacturer: string;
+};
 
 export default function SettingsPage() {
+  const [parameters, setParameters] = React.useState<MachineParameter[]>([
+    { prefix: "3C", model: "S90", manufacturer: "PAX" },
+    { prefix: "VX", model: "VX520", manufacturer: "Verifone" },
+    { prefix: "IC", model: "ICT220", manufacturer: "Ingenico" },
+  ]);
+  const [newParam, setNewParam] = React.useState({ prefix: "", model: "", manufacturer: "" });
+
+  const handleAddParameter = () => {
+    if (newParam.prefix && newParam.model && newParam.manufacturer) {
+      setParameters([...parameters, newParam]);
+      setNewParam({ prefix: "", model: "", manufacturer: "" });
+    }
+  };
+
+  const handleDeleteParameter = (prefix: string) => {
+    setParameters(parameters.filter(p => p.prefix !== prefix));
+  };
+
+
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <div>
@@ -21,6 +59,57 @@ export default function SettingsPage() {
         </p>
       </div>
       <Separator />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>تعريف الماكينات</CardTitle>
+          <CardDescription>
+            إدارة قواعد تحديد موديل ومصنع الماكينة تلقائيًا من الرقم التسلسلي.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>بادئة الرقم التسلسلي</TableHead>
+                <TableHead>الموديل</TableHead>
+                <TableHead>المصنّع</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {parameters.map((param) => (
+                <TableRow key={param.prefix}>
+                  <TableCell className="font-medium">{param.prefix}</TableCell>
+                  <TableCell>{param.model}</TableCell>
+                  <TableCell>{param.manufacturer}</TableCell>
+                  <TableCell className="text-left">
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteParameter(param.prefix)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          <div className="flex gap-4 items-end pt-4 border-t">
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="prefix">البادئة</Label>
+                <Input id="prefix" value={newParam.prefix} onChange={(e) => setNewParam({...newParam, prefix: e.target.value})} placeholder="e.g. 3C" />
+              </div>
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="model">الموديل</Label>
+                <Input id="model" value={newParam.model} onChange={(e) => setNewParam({...newParam, model: e.target.value})} placeholder="e.g. S90" />
+              </div>
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="manufacturer">المصنّع</Label>
+                <Input id="manufacturer" value={newParam.manufacturer} onChange={(e) => setNewParam({...newParam, manufacturer: e.target.value})} placeholder="e.g. PAX" />
+              </div>
+              <Button onClick={handleAddParameter}>إضافة</Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
