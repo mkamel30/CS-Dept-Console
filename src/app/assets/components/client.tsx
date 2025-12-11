@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
 import { machineParameters } from "@/lib/data";
 
 import { columns, type PosMachineColumn } from "./columns";
@@ -29,6 +29,7 @@ interface PosMachineClientProps {
 export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoading }) => {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getMachineDetailsFromSerial = (serial: string) => {
@@ -38,11 +39,11 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !firestore) {
+    if (!file || !firestore || !user) {
         toast({
           variant: "destructive",
           title: "خطأ",
-          description: "لا يمكن الاتصال بقاعدة البيانات. الرجاء المحاولة مرة أخرى.",
+          description: "يجب تسجيل الدخول أولاً. لا يمكن الاتصال بقاعدة البيانات.",
         });
         return;
     }
