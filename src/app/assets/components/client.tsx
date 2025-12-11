@@ -214,7 +214,12 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
               <p className="mr-4 text-muted-foreground">...جاري تحميل البيانات</p>
           </div>
       ) : (
-        <DataTable searchKey="serialNumber" columns={columns} data={data} searchPlaceholder="بحث بالرقم التسلسلي..." />
+        <DataTable 
+          searchKeys={["serialNumber", "posId", "customerId"]} 
+          columns={columns} 
+          data={data} 
+          searchPlaceholder="بحث بالرقم التسلسلي، POSID، أو رقم العميل..." 
+        />
       )}
     </>
   );

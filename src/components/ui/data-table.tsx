@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -35,20 +36,22 @@ import { ChevronDown } from "lucide-react"
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  searchKey: string
+  searchKeys: string[]
   searchPlaceholder?: string
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  searchKey,
+  searchKeys,
   searchPlaceholder = "بحث...",
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+  const [globalFilter, setGlobalFilter] = React.useState('')
+
 
   const table = useReactTable({
     data,
@@ -61,23 +64,35 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, columnId, filterValue) => {
+        if (searchKeys.includes(columnId)) {
+            const value = row.getValue(columnId) as string;
+            return value?.toLowerCase().includes(filterValue.toLowerCase());
+        }
+        return false;
+    },
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
+      globalFilter,
     },
   })
+
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const filterValue = event.target.value;
+    setGlobalFilter(filterValue);
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center py-4">
         <Input
           placeholder={searchPlaceholder}
-          value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn(searchKey)?.setFilterValue(event.target.value)
-          }
+          value={globalFilter ?? ""}
+          onChange={handleSearch}
           className="max-w-sm"
         />
         <DropdownMenu>
