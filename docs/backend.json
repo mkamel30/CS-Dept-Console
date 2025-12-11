@@ -208,6 +208,27 @@
         "name",
         "role"
       ]
+    },
+    "MachineParameter": {
+      "title": "MachineParameter",
+      "type": "object",
+      "description": "Defines the structure for machine parameter rules used for auto-lookup.",
+      "properties": {
+        "prefix": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "prefix",
+        "model",
+        "manufacturer"
+      ]
     }
   },
   "auth": {
@@ -246,6 +267,12 @@
         "$ref": "#/entities/MaintenanceRequest"
       },
       "description": "Stores all maintenance requests."
+    },
+    "/machineParameters/{parameterId}": {
+      "schema": {
+        "$ref": "#/entities/MachineParameter"
+      },
+      "description": "Stores rules for identifying machine models and manufacturers from serial number prefixes."
     }
   }
 }

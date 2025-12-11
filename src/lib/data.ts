@@ -1,16 +1,16 @@
 import { MachineParameter } from './types';
 import { subDays } from 'date-fns';
 
-export const machineParameters: MachineParameter[] = [
+// Note: The static data below (machineParameters, posMachines, maintenanceRequests, etc.) is now deprecated
+// and will be fully replaced by Firestore. It's kept here temporarily for reference
+// during the transition but is no longer used by the application logic.
+// All data will be read from and written to Firestore.
+
+export const machineParameters: Omit<MachineParameter, 'id'>[] = [
     { prefix: "3C", model: "S90", manufacturer: "PAX" },
     { prefix: "VX", model: "VX520", manufacturer: "Verifone" },
     { prefix: "IC", model: "ICT220", manufacturer: "Ingenico" },
 ];
-
-// Note: The static data below (posMachines, maintenanceRequests, etc.) is now deprecated
-// and will be fully replaced by Firestore. It's kept here temporarily for reference
-// during the transition but is no longer used by the application logic.
-// All data will be read from and written to Firestore.
 
 export const assets: any[] = [
   { id: 'ASSET-101', name: 'مضخة مياه رئيسية', type: 'ميكانيكي', location: 'غرفة المضخات', status: 'Under Maintenance', lastMaintenance: subDays(new Date(), 30).toISOString() },

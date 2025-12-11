@@ -129,7 +129,13 @@ service cloud.firestore {
     match /maintenanceRequests/{requestId} {
       allow read, write: if isSignedIn();
     }
+    
+    /**
+     * Machine Parameters for settings.
+     * Any authenticated user should be able to read and write.
+     */
+    match /machineParameters/{parameterId} {
+      allow read, write: if isSignedIn();
+    }
   }
 }
-
-    

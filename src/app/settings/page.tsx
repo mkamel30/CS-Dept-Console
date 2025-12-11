@@ -22,27 +22,49 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Trash2 } from "lucide-react";
-import { machineParameters } from "@/lib/data";
+import { Loader2, Trash2 } from "lucide-react";
 import { MachineParameter } from "@/lib/types";
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { collection, query, doc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function SettingsPage() {
-  // For now, we will read from the static data, but not allow updates from the UI
-  // The next step would be to save this to a database or a config file.
-  const [parameters, setParameters] = React.useState<MachineParameter[]>(machineParameters);
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  
+  const parametersQuery = useMemoFirebase(
+    () => firestore ? query(collection(firestore, "machineParameters")) : null,
+    [firestore]
+  );
+  
+  const { data: parameters, isLoading } = useCollection<MachineParameter>(parametersQuery);
+
   const [newParam, setNewParam] = React.useState({ prefix: "", model: "", manufacturer: "" });
 
   const handleAddParameter = () => {
-    // This is temporarily disabled as we are not persisting the data yet.
-    // if (newParam.prefix && newParam.model && newParam.manufacturer) {
-    //   setParameters([...parameters, newParam]);
-    //   setNewParam({ prefix: "", model: "", manufacturer: "" });
-    // }
+    if (!firestore) {
+      toast({ variant: "destructive", title: "خطأ", description: "لا يمكن الاتصال بقاعدة البيانات."});
+      return;
+    }
+    if (newParam.prefix && newParam.model && newParam.manufacturer) {
+      const parametersCollection = collection(firestore, 'machineParameters');
+      addDocumentNonBlocking(parametersCollection, newParam);
+      setNewParam({ prefix: "", model: "", manufacturer: "" });
+      toast({ title: "تمت الإضافة", description: "تمت إضافة القاعدة الجديدة بنجاح." });
+    } else {
+      toast({ variant: "destructive", title: "بيانات ناقصة", description: "الرجاء ملء جميع الحقول." });
+    }
   };
 
-  const handleDeleteParameter = (prefix: string) => {
-     // This is temporarily disabled as we are not persisting the data yet.
-    // setParameters(parameters.filter(p => p.prefix !== prefix));
+  const handleDeleteParameter = (id: string) => {
+    if (!firestore) {
+      toast({ variant: "destructive", title: "خطأ", description: "لا يمكن الاتصال بقاعدة البيانات."});
+      return;
+    }
+    const paramDoc = doc(firestore, 'machineParameters', id);
+    deleteDocumentNonBlocking(paramDoc);
+    toast({ title: "تم الحذف", description: "تم حذف القاعدة بنجاح." });
   };
 
 
@@ -60,27 +82,32 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>تعريف الماكينات</CardTitle>
           <CardDescription>
-            إدارة قواعد تحديد موديل ومصنع الماكينة تلقائيًا من الرقم التسلسلي. (ملاحظة: الإضافة والحذف معطلان مؤقتاً).
+            إدارة قواعد تحديد موديل ومصنع الماكينة تلقائيًا من الرقم التسلسلي.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {isLoading ? (
+             <div className="flex items-center justify-center p-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>بادئة الرقم التسلسلي</TableHead>
                 <TableHead>الموديل</TableHead>
                 <TableHead>المصنّع</TableHead>
-                <TableHead></TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {parameters.map((param) => (
-                <TableRow key={param.prefix}>
+              {parameters?.map((param) => (
+                <TableRow key={param.id}>
                   <TableCell className="font-medium">{param.prefix}</TableCell>
                   <TableCell>{param.model}</TableCell>
                   <TableCell>{param.manufacturer}</TableCell>
                   <TableCell className="text-left">
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteParameter(param.prefix)} disabled>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteParameter(param.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -88,21 +115,22 @@ export default function SettingsPage() {
               ))}
             </TableBody>
           </Table>
+          )}
           
           <div className="flex gap-4 items-end pt-4 border-t">
               <div className="space-y-2 flex-1">
                 <Label htmlFor="prefix">البادئة</Label>
-                <Input id="prefix" value={newParam.prefix} onChange={(e) => setNewParam({...newParam, prefix: e.target.value})} placeholder="e.g. 3C" disabled />
+                <Input id="prefix" value={newParam.prefix} onChange={(e) => setNewParam({...newParam, prefix: e.target.value})} placeholder="e.g. 3C" />
               </div>
               <div className="space-y-2 flex-1">
                 <Label htmlFor="model">الموديل</Label>
-                <Input id="model" value={newParam.model} onChange={(e) => setNewParam({...newParam, model: e.target.value})} placeholder="e.g. S90" disabled />
+                <Input id="model" value={newParam.model} onChange={(e) => setNewParam({...newParam, model: e.target.value})} placeholder="e.g. S90" />
               </div>
               <div className="space-y-2 flex-1">
                 <Label htmlFor="manufacturer">المصنّع</Label>
-                <Input id="manufacturer" value={newParam.manufacturer} onChange={(e) => setNewParam({...newParam, manufacturer: e.target.value})} placeholder="e.g. PAX" disabled />
+                <Input id="manufacturer" value={newParam.manufacturer} onChange={(e) => setNewParam({...newParam, manufacturer: e.target.value})} placeholder="e.g. PAX" />
               </div>
-              <Button onClick={handleAddParameter} disabled>إضافة</Button>
+              <Button onClick={handleAddParameter}>إضافة</Button>
           </div>
         </CardContent>
       </Card>

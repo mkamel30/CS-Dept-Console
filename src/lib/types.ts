@@ -57,6 +57,7 @@ export type SimCard = {
 
 // Defines the structure for machine parameter rules used for auto-lookup.
 export type MachineParameter = {
+  id: string; // Document ID
   prefix: string;
   model: string;
   manufacturer: string;

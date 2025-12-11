@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { PlusCircle, Upload, Download, Loader2 } from "lucide-react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
-import { machineParameters } from "@/lib/data";
+import { useFirestore, addDocumentNonBlocking, useUser, useCollection, useMemoFirebase } from "@/firebase";
+import { MachineParameter } from "@/lib/types";
 
 import { columns, type PosMachineColumn } from "./columns";
 
@@ -35,7 +35,16 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const parametersQuery = useMemoFirebase(
+    () => firestore ? query(collection(firestore, "machineParameters")) : null,
+    [firestore]
+  );
+  const { data: machineParameters, isLoading: isLoadingParameters } = useCollection<MachineParameter>(parametersQuery);
+
   const getMachineDetailsFromSerial = (serial: string) => {
+    if (!machineParameters) {
+        return { model: 'غير معروف', manufacturer: 'غير معروف' };
+    }
     const matchingParam = machineParameters.find(p => serial.startsWith(p.prefix));
     return matchingParam || { model: 'غير معروف', manufacturer: 'غير معروف' };
   }
@@ -49,6 +58,15 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
           variant: "destructive",
           title: "خطأ",
           description: "يجب تسجيل الدخول أولاً. لا يمكن الاتصال بقاعدة البيانات.",
+        });
+        return;
+    }
+
+    if (isLoadingParameters) {
+       toast({
+          variant: "destructive",
+          title: "خطأ",
+          description: "جاري تحميل إعدادات الماكينات، يرجى المحاولة بعد قليل.",
         });
         return;
     }
@@ -71,7 +89,6 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
           description: `تم العثور على ${json.length} سجل. جاري الحفظ في قاعدة البيانات.`,
         });
 
-        // Fetch existing serial numbers for duplicate checking
         const machinesCollection = collection(firestore, 'posMachines');
         const existingMachinesSnapshot = await getDocs(machinesCollection);
         const existingSerials = new Set(existingMachinesSnapshot.docs.map(doc => doc.data().serialNumber));
@@ -107,7 +124,7 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
             
             addDocumentNonBlocking(machinesCollection, newMachine);
             successCount++;
-            existingSerials.add(serial.toString()); // Add to set to prevent duplicates within the same file
+            existingSerials.add(serial.toString());
           }
           
           setProgress(((i + 1) / json.length) * 100);
@@ -129,7 +146,6 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
       } finally {
         setIsProcessing(false);
         setProgress(0);
-        // Reset file input
         if(fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -179,7 +195,7 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
                 <Download className="ml-2 h-4 w-4" />
                 تنزيل قالب Excel
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => fileInputRef.current?.click()} disabled={isProcessing}>
+              <DropdownMenuItem onClick={() => fileInputRef.current?.click()} disabled={isProcessing || isLoadingParameters}>
                 <Upload className="ml-2 h-4 w-4" />
                 رفع ملف Excel
               </DropdownMenuItem>
