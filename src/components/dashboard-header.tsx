@@ -60,7 +60,7 @@ export function DashboardHeader() {
             currentPath += `/${segment}`;
             const isLast = index === pathSegments.length - 1;
             return (
-              <>
+              <React.Fragment key={currentPath}>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   {isLast ? (
@@ -71,7 +71,7 @@ export function DashboardHeader() {
                     </BreadcrumbLink>
                   )}
                 </BreadcrumbItem>
-              </>
+              </React.Fragment>
             );
           })}
         </BreadcrumbList>
