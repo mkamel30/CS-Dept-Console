@@ -194,11 +194,19 @@ export default function CustomerPortalPage() {
         </div>
       ) : hasSearched ? (
         customer ? (
-          <CustomerPortalDisplay
-            customer={customer}
-            machines={machines}
-            simCards={simCards}
-          />
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                  <CardTitle>بيانات العميل: {customer.client_name}</CardTitle>
+                  <CardDescription>عرض تفصيلي للأجهزة والبيانات المرتبطة بالعميل صاحب رقم: {customer.bkcode}</CardDescription>
+              </CardHeader>
+            </Card>
+            <CustomerPortalDisplay
+              customer={customer}
+              machines={machines}
+              simCards={simCards}
+            />
+          </div>
         ) : (
           <Card className="text-center py-10">
             <CardContent>
