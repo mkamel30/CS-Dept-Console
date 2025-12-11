@@ -1,8 +1,8 @@
+
 "use client";
 
 import { useRef } from "react";
 import { PlusCircle, Upload, Download, Loader2 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { collection } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
+        const XLSX = await import("xlsx");
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
@@ -101,7 +102,8 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
     }
   };
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.json_to_sheet([
       { serialNumber: "", posId: "", customerId: "", isMain: "no" },
     ]);
@@ -110,7 +112,8 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
     XLSX.writeFile(wb, "PosMachines_Template.xlsx");
   };
 
-  const handleExportData = () => {
+  const handleExportData = async () => {
+     const XLSX = await import("xlsx");
      const ws = XLSX.utils.json_to_sheet(data);
      const wb = XLSX.utils.book_new();
      XLSX.utils.book_append_sheet(wb, ws, "Current Machines");
