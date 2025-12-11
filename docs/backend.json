@@ -4,19 +4,20 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MaintenanceRequest",
       "type": "object",
-      "description": "Represents a maintenance request for an asset.",
+      "description": "Represents a maintenance request for a POS machine.",
       "properties": {
-        "id": {
+        "machineId": {
           "type": "string",
-          "description": "Unique identifier for the maintenance request."
+          "description": "Reference to the PosMachine."
         },
-        "assetId": {
-          "type": "string",
-          "description": "Reference to the Asset. (Relationship: Asset 1:N MaintenanceRequest)"
+        "customerName": {
+          "type": "string"
         },
-        "requestType": {
-          "type": "string",
-          "description": "Type of maintenance request (e.g., 'Preventive', 'Corrective')."
+        "machineModel": {
+          "type": "string"
+        },
+        "machineManufacturer": {
+          "type": "string"
         },
         "createdAt": {
           "type": "string",
@@ -31,71 +32,63 @@
           "type": "string",
           "description": "Priority of the request (e.g., 'High', 'Medium', 'Low')."
         },
-        "description": {
+        "technician": {
           "type": "string",
-          "description": "Detailed description of the maintenance issue."
-        },
-        "attachments": {
-          "type": "string",
-          "description": "File attachments (e.g., images, documents) related to the request."
-        },
-        "assignedTechnicianId": {
-          "type": "string",
-          "description": "Reference to the User assigned to the request. (Relationship: User 1:N MaintenanceRequest)"
-        },
-        "closedAt": {
-          "type": "string",
-          "description": "Date and time the request was closed.",
-          "format": "date-time"
+          "description": "Name of the assigned technician."
         }
       },
       "required": [
-        "id",
-        "assetId",
-        "requestType",
+        "machineId",
+        "customerName",
         "createdAt",
         "status",
-        "priority",
-        "description"
+        "priority"
       ]
     },
-    "Asset": {
+    "PosMachine": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Asset",
+      "title": "PosMachine",
       "type": "object",
-      "description": "Represents an asset or piece of equipment that requires maintenance.",
+      "description": "Represents a POS machine requiring maintenance.",
+      "properties": {
+        "serialNumber": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": "string"
+        },
+        "customerId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "serialNumber",
+        "model",
+        "manufacturer",
+        "customerId"
+      ]
+    },
+    "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Customer",
+      "type": "object",
+      "description": "Represents a customer who owns POS machines.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the asset."
+          "description": "Unique identifier for the customer (e.g., CUST-1001)."
         },
-        "assetType": {
+        "name": {
           "type": "string",
-          "description": "Type of asset (e.g., 'Machine', 'Vehicle', 'Tool')."
-        },
-        "department": {
-          "type": "string",
-          "description": "Department the asset belongs to."
-        },
-        "purchaseDate": {
-          "type": "string",
-          "description": "Date the asset was purchased.",
-          "format": "date-time"
-        },
-        "preventiveMaintenanceSchedule": {
-          "type": "string",
-          "description": "Schedule for preventive maintenance tasks."
-        },
-        "failureHistory": {
-          "type": "string",
-          "description": "Record of past failures and repairs."
+          "description": "Full name of the customer."
         }
       },
       "required": [
         "id",
-        "assetType",
-        "department",
-        "purchaseDate"
+        "name"
       ]
     },
     "User": {
@@ -115,89 +108,12 @@
         "role": {
           "type": "string",
           "description": "User's role in the system (e.g., 'Technician', 'Manager')."
-        },
-        "contactInformation": {
-          "type": "string",
-          "description": "User's contact information (e.g., phone number, email address)."
-        },
-        "permissions": {
-          "type": "string",
-          "description": "User's permissions within the system."
         }
       },
       "required": [
         "id",
         "name",
-        "role",
-        "contactInformation"
-      ]
-    },
-    "Inventory": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Inventory",
-      "type": "object",
-      "description": "Represents the inventory of spare parts and supplies.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the inventory item."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the spare part or supply."
-        },
-        "quantityAvailable": {
-          "type": "number",
-          "description": "Quantity of the item currently in stock."
-        },
-        "minimumThreshold": {
-          "type": "number",
-          "description": "Minimum quantity that should be in stock."
-        },
-        "supplier": {
-          "type": "string",
-          "description": "Supplier of the item."
-        },
-        "movementHistory": {
-          "type": "string",
-          "description": "Record of inventory movements (e.g., additions, removals)."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "quantityAvailable",
-        "minimumThreshold"
-      ]
-    },
-    "Report": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Report",
-      "type": "object",
-      "description": "Represents a report generated by the system.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the report."
-        },
-        "reportType": {
-          "type": "string",
-          "description": "Type of report (e.g., 'Performance', 'Cost', 'Failure')."
-        },
-        "timePeriod": {
-          "type": "string",
-          "description": "Time period the report covers."
-        },
-        "statisticalData": {
-          "type": "string",
-          "description": "Statistical data included in the report."
-        }
-      },
-      "required": [
-        "id",
-        "reportType",
-        "timePeriod",
-        "statisticalData"
+        "role"
       ]
     }
   },
@@ -208,92 +124,35 @@
     ]
   },
   "firestore": {
-    "structure": [
+    "collections": [
       {
         "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user information. Access is restricted to the user and admins.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
-        }
+        "schema": {
+          "$ref": "#/entities/User"
+        },
+        "description": "Stores user profiles."
       },
       {
-        "path": "/assets/{assetId}",
-        "definition": {
-          "entityName": "Asset",
-          "schema": {
-            "$ref": "#/backend/entities/Asset"
-          },
-          "description": "Stores asset information. Accessible to authorized personnel.",
-          "params": [
-            {
-              "name": "assetId",
-              "description": "The unique identifier of the asset."
-            }
-          ]
-        }
+        "path": "/customers/{customerId}",
+        "schema": {
+          "$ref": "#/entities/Customer"
+        },
+        "description": "Stores customer information."
       },
       {
-        "path": "/assets/{assetId}/maintenanceRequests/{requestId}",
-        "definition": {
-          "entityName": "MaintenanceRequest",
-          "schema": {
-            "$ref": "#/backend/entities/MaintenanceRequest"
-          },
-          "description": "Stores maintenance requests for a specific asset. Access controlled via asset permissions.",
-          "params": [
-            {
-              "name": "assetId",
-              "description": "The unique identifier of the parent asset."
-            },
-            {
-              "name": "requestId",
-              "description": "The unique identifier of the maintenance request."
-            }
-          ]
-        }
+        "path": "/posMachines/{machineId}",
+        "schema": {
+          "$ref": "#/entities/PosMachine"
+        },
+        "description": "Stores POS machine details."
       },
       {
-        "path": "/inventory/{inventoryId}",
-        "definition": {
-          "entityName": "Inventory",
-          "schema": {
-            "$ref": "#/backend/entities/Inventory"
-          },
-          "description": "Stores inventory information. Access is restricted to authorized personnel (e.g., managers).",
-          "params": [
-            {
-              "name": "inventoryId",
-              "description": "The unique identifier of the inventory item."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/reports/{reportId}",
-        "definition": {
-          "entityName": "Report",
-          "schema": {
-            "$ref": "#/backend/entities/Report"
-          },
-          "description": "Stores generated reports. Access can be restricted based on user roles.",
-          "params": [
-            {
-              "name": "reportId",
-              "description": "The unique identifier of the report."
-            }
-          ]
-        }
+        "path": "/maintenanceRequests/{requestId}",
+        "schema": {
+          "$ref": "#/entities/MaintenanceRequest"
+        },
+        "description": "Stores all maintenance requests."
       }
-    ],
-    "reasoning": "The Firestore structure is designed to support an on-premise maintenance management system with a focus on authorization independence, clarity, and security. It leverages path-based ownership for user-specific data and denormalization to avoid hierarchical authorization dependencies. Since the application requires no external network connection, all data is managed within the local Firestore instance. The structure facilitates simple and robust security rules suitable for local deployment.\n\n1.  **User Data (`/users/{userId}`):** Stores user information. This path ensures that only the user (or an admin with appropriate roles defined locally) can access their data, adhering to path-based ownership.\n2.  **Assets (`/assets/{assetId}`):** Stores information about assets. Maintenance requests are linked to assets via the `assetId` field.\n3.  **Maintenance Requests (`/assets/{assetId}/maintenanceRequests/{requestId}`):** Subcollection under each asset to store maintenance requests related to that asset. This hierarchical structure clearly defines the relationship between assets and their maintenance requests.\n4.  **Inventory (`/inventory/{inventoryId}`):** Stores inventory information. Access to inventory data can be controlled based on user roles (e.g., only managers can modify inventory). A separate `/roles_manager/{uid}` collection is recommended for verifying manager role.\n5.  **Reports (`/reports/{reportId}`):** Stores generated reports. Access to reports can be restricted based on user roles.\n\n**Authorization Independence:** The design avoids `get()` calls in security rules by using path-based ownership for user data and asset-specific maintenance requests. For collaborative scenarios (if any), denormalization of membership data into documents is required. However, based on the prompt, collaborative functionality is not included; each asset is an independent entity.\n\n**QAPs (Rules are not Filters):** Secure `list` operations are supported because each collection has a homogeneous security posture. Listing maintenance requests is secure because they are nested under assets, and access to assets can be controlled. Role-based access is also simple, by checking for document existence in a specific role collection such as `/roles_admin/{uid}`."
+    ]
   }
 }

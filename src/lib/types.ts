@@ -1,11 +1,21 @@
+
+import { Timestamp } from "firebase/firestore";
+
 export type MaintenanceRequest = {
   id: string;
   machineId: string;
   customerName: string;
+  machineModel: string;
+  machineManufacturer: string;
   status: 'Open' | 'In Progress' | 'Closed' | 'Cancelled';
   priority: 'Low' | 'Medium' | 'High';
   technician: string;
-  createdDate: string;
+  createdAt: string; // Should be Timestamp from Firestore, but using string for now
+};
+
+export type Customer = {
+  id: string;
+  name: string;
 };
 
 export type PosMachine = {
@@ -13,10 +23,7 @@ export type PosMachine = {
   serialNumber: string;
   model: string;
   manufacturer: string;
-  customer: {
-    id: string;
-    name: string;
-  };
+  customerId: string;
 };
 
 export type MachineParameter = {
@@ -24,7 +31,6 @@ export type MachineParameter = {
   model: string;
   manufacturer: string;
 };
-
 
 export type Asset = {
   id: string;

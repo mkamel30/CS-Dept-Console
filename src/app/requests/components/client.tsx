@@ -6,7 +6,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PlusCircle, Search } from "lucide-react";
-import { format } from "date-fns";
+import { collection, serverTimestamp } from "firebase/firestore";
+import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -36,22 +38,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { posMachines } from "@/lib/data";
-import { PosMachine } from "@/lib/types";
+import { PosMachine, Customer } from "@/lib/types";
 
 import { columns, type RequestColumn } from "./columns";
 
 interface RequestClientProps {
   data: RequestColumn[];
-  setData: React.Dispatch<React.SetStateAction<RequestColumn[]>>;
+  findCustomerMachines: (customerId: string) => Promise<PosMachine[]>;
+  findCustomer: (customerId: string) => Promise<Customer | null>;
+  isLoading: boolean;
 }
 
 const formSchema = z.object({
   customerId: z.string().min(1, { message: "رقم العميل مطلوب." }),
 });
 
-export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) => {
+export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomerMachines, findCustomer, isLoading }) => {
+  const firestore = useFirestore();
   const [open, setOpen] = useState(false);
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerMachines, setCustomerMachines] = useState<PosMachine[]>([]);
   const [selectedMachine, setSelectedMachine] = useState<PosMachine | null>(null);
 
@@ -62,13 +67,23 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) =
     },
   });
 
-  function onSearchCustomer(values: z.infer<typeof formSchema>) {
-    const machines = posMachines.filter(
-      (machine) => machine.customer.id === values.customerId
-    );
-    if (machines.length > 0) {
-      setCustomerMachines(machines);
+  async function onSearchCustomer(values: z.infer<typeof formSchema>) {
+    const foundCustomer = await findCustomer(values.customerId);
+    if (foundCustomer) {
+        setCustomer(foundCustomer);
+        const machines = await findCustomerMachines(values.customerId);
+        if (machines.length > 0) {
+            setCustomerMachines(machines);
+        } else {
+            setCustomerMachines([]);
+            toast({
+                variant: "destructive",
+                title: "لا توجد ماكينات",
+                description: "لم يتم العثور على ماكينات مسجلة لهذا العميل.",
+            });
+        }
     } else {
+      setCustomer(null);
       setCustomerMachines([]);
       toast({
         variant: "destructive",
@@ -79,28 +94,29 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) =
   }
 
   function handleCreateRequest() {
-    if (!selectedMachine) {
+    if (!selectedMachine || !customer || !firestore) {
         toast({
             variant: "destructive",
             title: "خطأ",
-            description: "الرجاء اختيار ماكينة لإنشاء الطلب.",
+            description: "الرجاء اختيار عميل وماكينة لإنشاء الطلب.",
           });
       return;
     }
 
-    const newRequest: RequestColumn = {
-      id: `REQ-${Math.floor(Math.random() * 1000)}`,
+    const newRequest = {
       machineId: selectedMachine.id,
       machineModel: selectedMachine.model,
       machineManufacturer: selectedMachine.manufacturer,
-      customerName: selectedMachine.customer.name,
+      customerName: customer.name,
       status: 'Open',
-      priority: 'Medium', // Default priority
+      priority: 'Medium',
       technician: 'غير معين',
-      createdDate: format(new Date(), "yyyy/MM/dd"),
+      createdAt: serverTimestamp(),
     };
 
-    setData((currentData) => [newRequest, ...currentData]);
+    const requestsCollection = collection(firestore, 'maintenanceRequests');
+    addDocumentNonBlocking(requestsCollection, newRequest);
+
     toast({
       title: "تم إنشاء الطلب بنجاح",
       description: `تم إنشاء طلب صيانة جديد للماكينة ${selectedMachine.serialNumber}`,
@@ -111,6 +127,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) =
     form.reset();
     setCustomerMachines([]);
     setSelectedMachine(null);
+    setCustomer(null);
   }
 
   return (
@@ -120,7 +137,15 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) =
           طلبات الصيانة ({data.length})
         </h2>
         <div className="flex items-center space-x-2">
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) {
+                form.reset();
+                setCustomer(null);
+                setCustomerMachines([]);
+                setSelectedMachine(null);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="ml-2 h-4 w-4" />
@@ -160,9 +185,9 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) =
                   </form>
                 </Form>
 
-                {customerMachines.length > 0 && (
+                {customerMachines.length > 0 && customer && (
                     <div className="space-y-4">
-                        <h4 className="font-medium">ماكينات العميل: {customerMachines[0].customer.name}</h4>
+                        <h4 className="font-medium">ماكينات العميل: {customer.name}</h4>
                         <Select onValueChange={(value) => setSelectedMachine(customerMachines.find(m => m.id === value) || null)}>
                             <SelectTrigger>
                                 <SelectValue placeholder="اختر الماكينة المطلوبة" />

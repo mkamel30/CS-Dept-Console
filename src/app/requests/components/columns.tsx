@@ -27,7 +27,7 @@ export type RequestColumn = {
   createdDate: string;
 };
 
-const statusVariantMap: Record<RequestColumn['status'], 'default' | 'secondary' | 'destructive'> = {
+const statusVariantMap: Record<RequestColumn['status'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
   'Open': 'default',
   'In Progress': 'secondary',
   'Closed': 'outline',
