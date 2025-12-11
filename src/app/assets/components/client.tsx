@@ -100,7 +100,7 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
               isMain: item.isMain === 'yes' || item.isMain === true,
             };
             
-            await addDocumentNonBlocking(machinesCollection, newMachine);
+            addDocumentNonBlocking(machinesCollection, newMachine);
             successCount++;
             existingSerials.add(serial.toString()); // Add to set to prevent duplicates within the same file
           }
