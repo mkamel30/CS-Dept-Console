@@ -1,4 +1,3 @@
-
 import { Timestamp } from "firebase/firestore";
 
 // Represents a maintenance request for a POS machine.
@@ -26,7 +25,7 @@ export type Customer = {
   address: string;
   contact_person?: string;
   scanned_id_path?: string;
-  national_id: string;
+  national_id?: string;
   dept?: string;
   telephone_1?: string;
   telephone_2?: string;

@@ -11,6 +11,7 @@ import {
   FileText,
   Settings,
   Building,
+  Search,
 } from 'lucide-react';
 import {
   SidebarHeader,
@@ -29,6 +30,7 @@ const navItems = [
   { href: '/requests', label: 'طلبات الصيانة', icon: Wrench },
   { href: '/assets', label: 'ماكينات نقاط البيع', icon: HardDrive },
   { href: '/customers', label: 'العملاء', icon: Building },
+  { href: '/portal', label: 'بوابة العميل', icon: Search },
   { href: '/inventory', label: 'المخزون', icon: Package },
   { href: '/technicians', label: 'الفنيون', icon: Users },
   { href: '/reports', label: 'التقارير', icon: FileText },
