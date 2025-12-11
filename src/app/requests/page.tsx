@@ -10,8 +10,8 @@ export default function RequestsPage() {
   const [requests, setRequests] = useState<RequestColumn[]>(() => {
     return maintenanceRequests.map(item => ({
       id: item.id,
-      issue: item.issue,
-      asset: item.asset,
+      machineId: item.machineId,
+      customerName: item.customerName,
       status: item.status,
       priority: item.priority,
       technician: item.technician,

@@ -1,13 +1,16 @@
-import { MaintenanceRequest, Asset, InventoryItem, Technician } from './types';
+import { MaintenanceRequest, Asset, InventoryItem, Technician, PosMachine } from './types';
 import { subDays, subHours } from 'date-fns';
 
+export const posMachines: PosMachine[] = [
+  { id: 'POS-001', serialNumber: 'SN-A123', model: 'Verifone VX520', customer: { id: 'CUST-1001', name: 'متجر النجاح' } },
+  { id: 'POS-002', serialNumber: 'SN-B456', model: 'Ingenico ICT220', customer: { id: 'CUST-1001', name: 'متجر النجاح' } },
+  { id: 'POS-003', serialNumber: 'SN-C789', model: 'PAX S80', customer: { id: 'CUST-1002', name: 'صيدلية الشفاء' } },
+];
+
+
 export const maintenanceRequests: MaintenanceRequest[] = [
-  { id: 'REQ-001', asset: 'مضخة مياه رئيسية', issue: 'تسريب مياه', status: 'Open', priority: 'High', technician: 'علي حسن', createdDate: subDays(new Date(), 1).toISOString() },
-  { id: 'REQ-002', asset: 'مكيف الهواء المركزي', issue: 'ضعف التبريد', status: 'In Progress', priority: 'Medium', technician: 'فاطمة الزهراء', createdDate: subDays(new Date(), 2).toISOString() },
-  { id: 'REQ-003', asset: 'مولد كهرباء احتياطي', issue: 'فشل في البدء', status: 'Closed', priority: 'High', technician: 'علي حسن', createdDate: subDays(new Date(), 10).toISOString() },
-  { id: 'REQ-004', asset: 'نظام الإضاءة', issue: 'عطل في اللوحة الرئيسية', status: 'Open', priority: 'Low', technician: 'غير معين', createdDate: subHours(new Date(), 4).toISOString() },
-  { id: 'REQ-005', asset: 'رافعة شوكية #3', issue: 'صوت غير طبيعي في المحرك', status: 'Cancelled', priority: 'Medium', technician: 'سالم الأحمدي', createdDate: subDays(new Date(), 5).toISOString() },
-  { id: 'REQ-006', asset: 'نظام إنذار الحريق', issue: 'فحص دوري', status: 'In Progress', priority: 'Low', technician: 'فاطمة الزهراء', createdDate: subDays(new Date(), 3).toISOString() },
+  { id: 'REQ-001', machineId: 'POS-001', customerName: 'متجر النجاح', status: 'Open', priority: 'High', technician: 'علي حسن', createdDate: subDays(new Date(), 1).toISOString() },
+  { id: 'REQ-002', machineId: 'POS-003', customerName: 'صيدلية الشفاء', status: 'In Progress', priority: 'Medium', technician: 'فاطمة الزهراء', createdDate: subDays(new Date(), 2).toISOString() },
 ];
 
 export const assets: Asset[] = [

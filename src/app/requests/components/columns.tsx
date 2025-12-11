@@ -16,8 +16,8 @@ import {
 
 export type RequestColumn = {
   id: string;
-  issue: string;
-  asset: string;
+  machineId: string;
+  customerName: string;
   status: 'Open' | 'In Progress' | 'Closed' | 'Cancelled';
   priority: 'Low' | 'Medium' | 'High';
   technician: string;
@@ -72,12 +72,16 @@ export const columns: ColumnDef<RequestColumn>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "issue",
-    header: "المشكلة",
+    accessorKey: "id",
+    header: "رقم الطلب",
   },
   {
-    accessorKey: "asset",
-    header: "الأصل",
+    accessorKey: "customerName",
+    header: "اسم العميل",
+  },
+  {
+    accessorKey: "machineId",
+    header: "معرف الماكينة",
   },
   {
     accessorKey: "status",

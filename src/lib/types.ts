@@ -1,12 +1,23 @@
 export type MaintenanceRequest = {
   id: string;
-  asset: string;
-  issue: string;
+  machineId: string;
+  customerName: string;
   status: 'Open' | 'In Progress' | 'Closed' | 'Cancelled';
   priority: 'Low' | 'Medium' | 'High';
   technician: string;
   createdDate: string;
 };
+
+export type PosMachine = {
+  id: string;
+  serialNumber: string;
+  model: string;
+  customer: {
+    id: string;
+    name: string;
+  };
+};
+
 
 export type Asset = {
   id: string;

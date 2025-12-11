@@ -4,18 +4,11 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PlusCircle, Upload, Download } from "lucide-react";
+import { PlusCircle, Search } from "lucide-react";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +35,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { posMachines } from "@/lib/data";
+import { PosMachine } from "@/lib/types";
 
 import { columns, type RequestColumn } from "./columns";
 
@@ -51,40 +46,68 @@ interface RequestClientProps {
 }
 
 const formSchema = z.object({
-  issue: z.string().min(1, { message: "وصف المشكلة مطلوب." }),
-  asset: z.string().min(1, { message: "اسم الأصل مطلوب." }),
-  priority: z.enum(["Low", "Medium", "High"], {
-    required_error: "يجب اختيار الأولوية.",
-  }),
+  customerId: z.string().min(1, { message: "رقم العميل مطلوب." }),
 });
 
 export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) => {
   const [open, setOpen] = useState(false);
+  const [customerMachines, setCustomerMachines] = useState<PosMachine[]>([]);
+  const [selectedMachine, setSelectedMachine] = useState<PosMachine | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      issue: "",
-      asset: "",
+      customerId: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSearchCustomer(values: z.infer<typeof formSchema>) {
+    const machines = posMachines.filter(
+      (machine) => machine.customer.id === values.customerId
+    );
+    if (machines.length > 0) {
+      setCustomerMachines(machines);
+    } else {
+      setCustomerMachines([]);
+      toast({
+        variant: "destructive",
+        title: "لم يتم العثور على العميل",
+        description: "الرجاء التأكد من رقم العميل.",
+      });
+    }
+  }
+
+  function handleCreateRequest() {
+    if (!selectedMachine) {
+        toast({
+            variant: "destructive",
+            title: "خطأ",
+            description: "الرجاء اختيار ماكينة لإنشاء الطلب.",
+          });
+      return;
+    }
+
     const newRequest: RequestColumn = {
       id: `REQ-${Math.floor(Math.random() * 1000)}`,
-      issue: values.issue,
-      asset: values.asset,
-      priority: values.priority,
+      machineId: selectedMachine.id,
+      customerName: selectedMachine.customer.name,
       status: 'Open',
+      priority: 'Medium', // Default priority
       technician: 'غير معين',
-      createdDate: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format
+      createdDate: format(new Date(), "yyyy/MM/dd"),
     };
+
     setData((currentData) => [newRequest, ...currentData]);
     toast({
       title: "تم إنشاء الطلب بنجاح",
-      description: `تمت إضافة طلب الصيانة للمشكلة: ${values.issue}`,
+      description: `تم إنشاء طلب صيانة جديد للماكينة ${selectedMachine.serialNumber}`,
     });
+
+    // Reset state
     setOpen(false);
     form.reset();
+    setCustomerMachines([]);
+    setSelectedMachine(null);
   }
 
   return (
@@ -102,116 +125,68 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, setData }) =
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                  <DialogHeader>
-                    <DialogTitle>إنشاء طلب صيانة جديد</DialogTitle>
-                    <DialogDescription>
-                      املأ الحقول أدناه لإنشاء طلب جديد. انقر على "حفظ" عند
-                      الانتهاء.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
+                <DialogHeader>
+                  <DialogTitle>إنشاء طلب صيانة جديد</DialogTitle>
+                  <DialogDescription>
+                    أدخل رقم العميل للبحث عن الماكينات الخاصة به.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSearchCustomer)} className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="issue"
+                      name="customerId"
                       render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                          <FormLabel className="text-right">المشكلة</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="e.g. تسريب مياه"
-                              className="col-span-3"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage className="col-span-4" />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="asset"
-                      render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                          <FormLabel className="text-right">الأصل</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="e.g. مضخة مياه رئيسية"
-                              className="col-span-3"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage className="col-span-4" />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="priority"
-                      render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                          <FormLabel className="text-right">الأولوية</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
+                        <FormItem>
+                          <FormLabel>رقم العميل</FormLabel>
+                          <div className="flex items-center space-x-2">
                             <FormControl>
-                              <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="اختر الأولوية" />
-                              </SelectTrigger>
+                              <Input
+                                placeholder="e.g. CUST-1001"
+                                {...field}
+                              />
                             </FormControl>
-                            <SelectContent>
-                              <SelectItem value="High">عالية</SelectItem>
-                              <SelectItem value="Medium">متوسطة</SelectItem>
-                              <SelectItem value="Low">منخفضة</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage className="col-span-4" />
+                             <Button type="submit" size="icon">
+                                <Search className="h-4 w-4" />
+                             </Button>
+                          </div>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit">حفظ الطلب</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
+                  </form>
+                </Form>
+
+                {customerMachines.length > 0 && (
+                    <div className="space-y-4">
+                        <h4 className="font-medium">ماكينات العميل: {customerMachines[0].customer.name}</h4>
+                        <Select onValueChange={(value) => setSelectedMachine(customerMachines.find(m => m.id === value) || null)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="اختر الماكينة المطلوبة" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {customerMachines.map(machine => (
+                                    <SelectItem key={machine.id} value={machine.id}>
+                                        {machine.model} ({machine.serialNumber})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
+                <DialogFooter>
+                  <Button onClick={handleCreateRequest} disabled={!selectedMachine}>إنشاء الطلب</Button>
+                </DialogFooter>
             </DialogContent>
           </Dialog>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Upload className="ml-2 h-4 w-4" />
-                استيراد / تصدير
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuLabel>خيارات البيانات</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Download className="ml-2 h-4 w-4" />
-                تنزيل قالب Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Upload className="ml-2 h-4 w-4" />
-                رفع ملف Excel
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Download className="ml-2 h-4 w-4" />
-                تصدير البيانات الحالية
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
       <DataTable
-        searchKey="issue"
+        searchKey="customerName"
         columns={columns}
         data={data}
-        searchPlaceholder="بحث عن مشكلة..."
+        searchPlaceholder="بحث عن عميل..."
       />
     </>
   );
