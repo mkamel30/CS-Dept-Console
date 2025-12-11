@@ -2,6 +2,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { PlusCircle, Upload, Download, Loader2 } from "lucide-react";
 import { collection, getDocs } from "firebase/firestore";
 
@@ -18,6 +21,26 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 import { columns, type CustomerColumn } from "./columns";
 
@@ -26,6 +49,18 @@ interface CustomerClientProps {
   isLoading: boolean;
 }
 
+const formSchema = z.object({
+  bkcode: z.string().min(1, { message: "BKCODE مطلوب." }),
+  client_name: z.string().min(1, { message: "اسم العميل مطلوب." }),
+  address: z.string().min(1, { message: "العنوان مطلوب." }),
+  national_id: z.string().min(1, { message: "الرقم القومي مطلوب." }),
+  supply_office: z.string().optional(),
+  contact_person: z.string().optional(),
+  telephone_1: z.string().optional(),
+  telephone_2: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading }) => {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -33,6 +68,22 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      bkcode: "",
+      client_name: "",
+      address: "",
+      national_id: "",
+      supply_office: "",
+      contact_person: "",
+      telephone_1: "",
+      telephone_2: "",
+      notes: "",
+    },
+  });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -144,15 +195,178 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
      XLSX.writeFile(wb, "Current_Customers_Data.xlsx");
   };
 
+  const onAddCustomerSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!firestore) return;
+    try {
+      const customersCollection = collection(firestore, 'customers');
+      // Check for duplicates
+      const existingQuery = await getDocs(collection(firestore, "customers"));
+      const existingBkCodes = new Set(existingQuery.docs.map(doc => doc.data().bkcode));
+      if (existingBkCodes.has(values.bkcode)) {
+        toast({
+          variant: "destructive",
+          title: "BKCODE موجود بالفعل",
+          description: "هذا الـ BKCODE مسجل لعميل آخر. يرجى استخدام كود فريد.",
+        });
+        return;
+      }
+      
+      addDocumentNonBlocking(customersCollection, values);
+      toast({
+        title: "تمت إضافة العميل بنجاح",
+        description: `تم حفظ العميل ${values.client_name} في قاعدة البيانات.`,
+      });
+      form.reset();
+      setAddCustomerOpen(false);
+    } catch (error) {
+      console.error("Error adding customer:", error);
+      toast({
+        variant: "destructive",
+        title: "حدث خطأ",
+        description: "فشلت عملية إضافة العميل. يرجى المحاولة مرة أخرى.",
+      });
+    }
+  };
+
   return (
     <>
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">العملاء ({data.length})</h2>
         <div className="flex items-center space-x-2">
-          <Button disabled={isLoading || isProcessing}>
-            <PlusCircle className="ml-2 h-4 w-4" />
-            إضافة عميل يدوياً
-          </Button>
+          <Dialog open={isAddCustomerOpen} onOpenChange={setAddCustomerOpen}>
+            <DialogTrigger asChild>
+              <Button disabled={isLoading || isProcessing}>
+                <PlusCircle className="ml-2 h-4 w-4" />
+                إضافة عميل يدوياً
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl">
+              <DialogHeader>
+                <DialogTitle>إضافة عميل جديد</DialogTitle>
+                <DialogDescription>
+                  املأ الحقول التالية لحفظ بيانات عميل جديد. الحقول المعلمة بـ * إجبارية.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onAddCustomerSubmit)} className="grid grid-cols-2 gap-4 py-4">
+                   <FormField
+                      control={form.control}
+                      name="bkcode"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>BKCODE *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. 12345" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                   <FormField
+                      control={form.control}
+                      name="client_name"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>اسم العميل *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="اسم العميل بالكامل" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel>العنوان *</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="عنوان العميل بالتفصيل" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="national_id"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>الرقم القومي *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="14 رقم" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="telephone_1"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>رقم الهاتف 1</FormLabel>
+                          <FormControl>
+                            <Input placeholder="رقم الهاتف الأساسي" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="contact_person"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>الشخص المسؤول</FormLabel>
+                          <FormControl>
+                            <Input placeholder="اسم الشخص المسؤول" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="telephone_2"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>رقم الهاتف 2</FormLabel>
+                          <FormControl>
+                            <Input placeholder="رقم هاتف إضافي" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel>ملاحظات</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="أي ملاحظات إضافية عن العميل" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  <DialogFooter className="col-span-2">
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline">إلغاء</Button>
+                    </DialogClose>
+                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                      {form.formState.isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                      إنشاء العميل
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" disabled={isLoading || isProcessing}>
@@ -212,3 +426,5 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
     </>
   );
 };
+
+    
