@@ -38,7 +38,14 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !firestore) return;
+    if (!file || !firestore) {
+        toast({
+          variant: "destructive",
+          title: "خطأ",
+          description: "لا يمكن الاتصال بقاعدة البيانات. الرجاء المحاولة مرة أخرى.",
+        });
+        return;
+    }
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -125,13 +132,13 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">ماكينات نقاط البيع ({data.length})</h2>
         <div className="flex items-center space-x-2">
-          <Button>
+          <Button disabled={isLoading}>
             <PlusCircle className="ml-2 h-4 w-4" />
             إضافة ماكينة يدوياً
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" disabled={isLoading}>
                 <Upload className="ml-2 h-4 w-4" />
                 استيراد / تصدير
               </Button>
