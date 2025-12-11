@@ -3,7 +3,6 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -14,29 +13,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type AssetColumn = {
+export type PosMachineColumn = {
   id: string;
-  name: string;
-  type: string;
-  location: string;
-  status: 'Operational' | 'Under Maintenance' | 'Decommissioned';
-  lastMaintenance: string;
+  serialNumber: string;
+  posId: string;
+  model: string;
+  manufacturer: string;
+  customerId: string;
 };
 
-const statusVariantMap: Record<AssetColumn['status'], 'default' | 'secondary' | 'destructive'> = {
-  'Operational': 'default',
-  'Under Maintenance': 'secondary',
-  'Decommissioned': 'destructive',
-};
-
-const statusTextMap: Record<AssetColumn['status'], string> = {
-    'Operational': 'يعمل',
-    'Under Maintenance': 'تحت الصيانة',
-    'Decommissioned': 'خارج الخدمة'
-};
-
-
-export const columns: ColumnDef<AssetColumn>[] = [
+export const columns: ColumnDef<PosMachineColumn>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -57,33 +43,29 @@ export const columns: ColumnDef<AssetColumn>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "name",
-    header: "اسم الأصل",
+    accessorKey: "serialNumber",
+    header: "الرقم التسلسلي",
   },
   {
-    accessorKey: "type",
-    header: "النوع",
+    accessorKey: "posId",
+    header: "معرف النظام (POS ID)",
   },
   {
-    accessorKey: "location",
-    header: "الموقع",
+    accessorKey: "model",
+    header: "الموديل",
   },
   {
-    accessorKey: "status",
-    header: "الحالة",
-    cell: ({ row }) => {
-      const status = row.original.status;
-      return <Badge variant={statusVariantMap[status]}>{statusTextMap[status]}</Badge>;
-    },
+    accessorKey: "manufacturer",
+    header: "المصنع",
   },
   {
-    accessorKey: "lastMaintenance",
-    header: "آخر صيانة",
+    accessorKey: "customerId",
+    header: "رقم العميل",
   },
   {
     id: "actions",
     cell: ({ row }) => {
-      const asset = row.original;
+      const machine = row.original;
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -95,13 +77,12 @@ export const columns: ColumnDef<AssetColumn>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(asset.id)}
+              onClick={() => navigator.clipboard.writeText(machine.id)}
             >
-              نسخ معرف الأصل
+              نسخ معرف الماكينة
             </DropdownMenuItem>
-            <DropdownMenuItem>عرض التفاصيل</DropdownMenuItem>
-            <DropdownMenuItem>تعديل الأصل</DropdownMenuItem>
-            <DropdownMenuItem>حذف الأصل</DropdownMenuItem>
+            <DropdownMenuItem>تعديل</DropdownMenuItem>
+            <DropdownMenuItem>حذف</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

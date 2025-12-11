@@ -26,7 +26,7 @@ import { Separator } from './ui/separator';
 const navItems = [
   { href: '/', label: 'لوحة التحكم', icon: LayoutDashboard },
   { href: '/requests', label: 'طلبات الصيانة', icon: Wrench },
-  { href: '/assets', label: 'الأصول والمعدات', icon: HardDrive },
+  { href: '/assets', label: 'ماكينات نقاط البيع', icon: HardDrive },
   { href: '/inventory', label: 'المخزون', icon: Package },
   { href: '/technicians', label: 'الفنيون', icon: Users },
   { href: '/reports', label: 'التقارير', icon: FileText },
