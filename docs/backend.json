@@ -1,14 +1,17 @@
 {
   "entities": {
     "MaintenanceRequest": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MaintenanceRequest",
       "type": "object",
       "description": "Represents a maintenance request for a POS machine.",
       "properties": {
-        "machineId": {
+        "customerId": {
           "type": "string",
-          "description": "Reference to the PosMachine."
+          "description": "The unique bkcode of the customer."
+        },
+        "posMachineId": {
+          "type": "string",
+          "description": "The ID of the POS machine document."
         },
         "customerName": {
           "type": "string"
@@ -26,19 +29,34 @@
         },
         "status": {
           "type": "string",
-          "description": "Current status of the request (e.g., 'Open', 'In Progress', 'Closed')."
+          "description": "Current status of the request (e.g., 'Open', 'In Progress', 'Closed').",
+          "enum": [
+            "Open",
+            "In Progress",
+            "Closed",
+            "Cancelled"
+          ]
         },
         "priority": {
           "type": "string",
-          "description": "Priority of the request (e.g., 'High', 'Medium', 'Low')."
+          "description": "Priority of the request (e.g., 'High', 'Medium', 'Low').",
+          "enum": [
+            "High",
+            "Medium",
+            "Low"
+          ]
         },
         "technician": {
           "type": "string",
           "description": "Name of the assigned technician."
+        },
+        "notes": {
+          "type": "string"
         }
       },
       "required": [
-        "machineId",
+        "customerId",
+        "posMachineId",
         "customerName",
         "createdAt",
         "status",
@@ -46,53 +64,128 @@
       ]
     },
     "PosMachine": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PosMachine",
       "type": "object",
-      "description": "Represents a POS machine requiring maintenance.",
+      "description": "Represents a single POS machine owned by a customer.",
       "properties": {
         "serialNumber": {
-          "type": "string"
+          "type": "string",
+          "description": "The unique serial number of the terminal."
+        },
+        "posId": {
+          "type": "string",
+          "description": "The system-specific ID for the POS terminal."
         },
         "model": {
-          "type": "string"
+          "type": "string",
+          "description": "The model of the machine, derived from settings."
         },
         "manufacturer": {
-          "type": "string"
+          "type": "string",
+          "description": "The manufacturer of the machine, derived from settings."
         },
         "customerId": {
-          "type": "string"
+          "type": "string",
+          "description": "The bkcode of the customer who owns this machine."
+        },
+        "isMain": {
+          "type": "boolean",
+          "description": "Indicates if this is the current main POS for the client."
         }
       },
       "required": [
         "serialNumber",
-        "model",
-        "manufacturer",
+        "posId",
         "customerId"
       ]
     },
     "Customer": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Customer",
       "type": "object",
-      "description": "Represents a customer who owns POS machines.",
+      "description": "Represents a customer entity.",
       "properties": {
-        "id": {
+        "bkcode": {
           "type": "string",
-          "description": "Unique identifier for the customer (e.g., CUST-1001)."
+          "description": "Unique identifier for the customer, used as document ID."
         },
-        "name": {
+        "client_name": {
+          "type": "string"
+        },
+        "supply_office": {
+          "type": "string"
+        },
+        "operating_date": {
           "type": "string",
-          "description": "Full name of the customer."
+          "format": "date-time"
+        },
+        "address": {
+          "type": "string"
+        },
+        "contact_person": {
+          "type": "string"
+        },
+        "scanned_id_path": {
+          "type": "string",
+          "description": "Network path to the scanned ID."
+        },
+        "national_id": {
+          "type": "string"
+        },
+        "dept": {
+          "type": "string"
+        },
+        "telephone_1": {
+          "type": "string"
+        },
+        "telephone_2": {
+          "type": "string"
+        },
+        "has_gates": {
+          "type": "boolean"
+        },
+        "bk_type": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "papers_date": {
+          "type": "string",
+          "format": "date-time"
         }
       },
       "required": [
-        "id",
-        "name"
+        "bkcode",
+        "client_name",
+        "address",
+        "national_id"
+      ]
+    },
+    "SimCard": {
+      "title": "SimCard",
+      "type": "object",
+      "description": "Represents a SIM card associated with a customer.",
+      "properties": {
+        "serialNumber": {
+          "type": "string",
+          "description": "Unique serial number for the SIM card."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the SIM card (e.g., Vodafone, Orange)."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "The bkcode of the customer who owns this SIM."
+        }
+      },
+      "required": [
+        "serialNumber",
+        "type",
+        "customerId"
       ]
     },
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
       "description": "Represents a user of the maintenance management system.",
@@ -124,35 +217,35 @@
     ]
   },
   "firestore": {
-    "collections": [
-      {
-        "path": "/users/{userId}",
-        "schema": {
-          "$ref": "#/entities/User"
-        },
-        "description": "Stores user profiles."
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
       },
-      {
-        "path": "/customers/{customerId}",
-        "schema": {
-          "$ref": "#/entities/Customer"
-        },
-        "description": "Stores customer information."
+      "description": "Stores user profiles."
+    },
+    "/customers/{bkcode}": {
+      "schema": {
+        "$ref": "#/entities/Customer"
       },
-      {
-        "path": "/posMachines/{machineId}",
-        "schema": {
-          "$ref": "#/entities/PosMachine"
-        },
-        "description": "Stores POS machine details."
+      "description": "Stores customer information, using bkcode as the unique ID."
+    },
+    "/posMachines/{machineId}": {
+      "schema": {
+        "$ref": "#/entities/PosMachine"
       },
-      {
-        "path": "/maintenanceRequests/{requestId}",
-        "schema": {
-          "$ref": "#/entities/MaintenanceRequest"
-        },
-        "description": "Stores all maintenance requests."
-      }
-    ]
+      "description": "Stores all POS machines. Each machine is linked to a customer by customerId (bkcode)."
+    },
+    "/simCards/{simCardId}": {
+      "schema": {
+        "$ref": "#/entities/SimCard"
+      },
+      "description": "Stores all SIM cards. Each card is linked to a customer by customerId (bkcode)."
+    },
+    "/maintenanceRequests/{requestId}": {
+      "schema": {
+        "$ref": "#/entities/MaintenanceRequest"
+      },
+      "description": "Stores all maintenance requests."
+    }
   }
 }
