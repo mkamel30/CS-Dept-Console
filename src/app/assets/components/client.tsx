@@ -3,7 +3,7 @@
 
 import { useRef, useState } from "react";
 import { PlusCircle, Upload, Download, Loader2 } from "lucide-react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -78,22 +78,27 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
 
         let successCount = 0;
         let duplicateCount = 0;
-        let missingDataCount = 0;
+        let missingRequiredDataCount = 0;
+        let withoutPosIdCount = 0;
 
         for (let i = 0; i < json.length; i++) {
           const item = json[i];
           const serial = item.serialNumber || item.POS;
 
-          if (!serial || !item.posId || !item.customerId) {
-            missingDataCount++;
+          if (!serial || !item.customerId) {
+            missingRequiredDataCount++;
           } else if (existingSerials.has(serial.toString())) {
             duplicateCount++;
           } else {
             const details = getMachineDetailsFromSerial(serial.toString());
 
+            if (!item.posId) {
+                withoutPosIdCount++;
+            }
+
             const newMachine = {
               serialNumber: serial.toString(),
-              posId: item.posId.toString(),
+              posId: item.posId ? item.posId.toString() : 'N/A',
               customerId: item.customerId.toString(),
               model: details.model,
               manufacturer: details.manufacturer,
@@ -110,8 +115,8 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
 
         toast({
           title: "اكتمل الرفع بنجاح",
-          description: `المجموع: ${json.length}. | نجح: ${successCount} | مكرر: ${duplicateCount} | ناقص: ${missingDataCount}`,
-          duration: 7000,
+          description: `المجموع: ${json.length}. | نجح: ${successCount} | مكرر: ${duplicateCount} | ناقص: ${missingRequiredDataCount} | بدون POSID: ${withoutPosIdCount}`,
+          duration: 9000,
         });
 
       } catch (error) {
