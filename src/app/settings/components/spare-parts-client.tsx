@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PlusCircle, Upload, Download, Loader2, X, Check, ChevronsUpDown } from "lucide-react";
+import { PlusCircle, Upload, Download, Loader2, X, ChevronsUpDown } from "lucide-react";
 import { collection } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
@@ -53,14 +53,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -352,61 +345,61 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                     control={form.control}
                     name="compatibleModels"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                      <FormItem>
                         <FormLabel>الموديلات المتوافقة *</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                               <FormControl>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  className={cn(
-                                    "w-full justify-between",
-                                    !field.value.length && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value.length > 0 ? `${field.value.length} موديلات مختارة` : "اختر الموديلات"}
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                               <Command>
-                                <CommandInput placeholder="ابحث عن موديل..." />
-                                <CommandList>
-                                  <ScrollArea className="h-48">
-                                    <CommandEmpty>لا توجد نتائج.</CommandEmpty>
-                                    <CommandGroup>
-                                      {availableModels.map((model) => {
-                                        const isSelected = field.value.includes(model);
-                                        return (
-                                          <CommandItem
-                                            key={model}
-                                            onSelect={(currentValue) => {
-                                              if (isSelected) {
-                                                field.onChange(field.value.filter((m) => m !== model));
-                                              } else {
-                                                field.onChange([...field.value, model]);
-                                              }
-                                            }}
-                                          >
-                                            <Check
-                                              className={cn(
-                                                "mr-2 h-4 w-4",
-                                                isSelected ? "opacity-100" : "opacity-0"
-                                              )}
-                                            />
-                                            {model}
-                                          </CommandItem>
-                                        );
-                                      })}
-                                    </CommandGroup>
-                                  </ScrollArea>
-                                </CommandList>
-                               </Command>
-                            </PopoverContent>
-                          </Popover>
-                          <div className="pt-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value?.length && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value?.length > 0
+                                  ? `${field.value.length} موديلات مختارة`
+                                  : "اختر الموديلات"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <ScrollArea className="h-48">
+                              <div className="p-2 space-y-1">
+                                {availableModels.map((model) => (
+                                  <div
+                                    key={model}
+                                    className="flex items-center space-x-2 rounded-md p-2 hover:bg-accent"
+                                  >
+                                    <Checkbox
+                                      id={`model-${model}`}
+                                      checked={field.value?.includes(model)}
+                                      onCheckedChange={(checked) => {
+                                        const currentValue = field.value || [];
+                                        return checked
+                                          ? field.onChange([...currentValue, model])
+                                          : field.onChange(
+                                              currentValue.filter(
+                                                (value) => value !== model
+                                              )
+                                            );
+                                      }}
+                                    />
+                                    <label
+                                      htmlFor={`model-${model}`}
+                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                      {model}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </PopoverContent>
+                        </Popover>
+                         <div className="pt-2">
                           {field.value.map((model) => (
                             <Badge key={model} variant="secondary" className="mr-1 mb-1">
                               {model}
@@ -506,5 +499,6 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
     
 
     
+
 
 
