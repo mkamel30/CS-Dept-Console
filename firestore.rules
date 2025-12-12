@@ -69,7 +69,7 @@ service cloud.firestore {
     }
 
 
-    // =====================================================================
+    // =================================================-====================
     // Role Collections (Admin-managed)
     // =====================================================================
     match /roles_admin/{uid} {
@@ -89,10 +89,11 @@ service cloud.firestore {
      * User profiles.
      * read: admin, or owner
      * write: owner
+     * list: signed in users
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if false; // Do not allow listing all users
+      allow list: if isSignedIn(); 
       allow create: if isOwner(userId);
       allow update, delete: if isOwner(userId);
     }
