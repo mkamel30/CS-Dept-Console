@@ -65,6 +65,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 import { columns, type SparePartColumn } from "./spare-parts-columns";
@@ -367,36 +368,38 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                     </Badge>
                                 ))}
                                 </div>
-                                <CommandList>
-                                <CommandEmpty>لا توجد نتائج.</CommandEmpty>
-                                <CommandGroup>
-                                    {availableModels.map((model) => (
-                                    <CommandItem
-                                        key={model}
-                                        onSelect={() => {
-                                            const currentModels = field.value;
-                                            if (currentModels.includes(model)) {
-                                                field.onChange(currentModels.filter((m) => m !== model));
-                                            } else {
-                                                field.onChange([...currentModels, model]);
-                                            }
-                                        }}
-                                    >
-                                        <div
-                                        className={cn(
-                                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                            field.value.includes(model)
-                                            ? "bg-primary text-primary-foreground"
-                                            : "opacity-50 [&_svg]:invisible"
-                                        )}
-                                        >
-                                        <Check className={cn("h-4 w-4")} />
-                                        </div>
-                                        {model}
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
+                                <ScrollArea className="h-32">
+                                  <CommandList>
+                                  <CommandEmpty>لا توجد نتائج.</CommandEmpty>
+                                  <CommandGroup>
+                                      {availableModels.map((model) => (
+                                      <CommandItem
+                                          key={model}
+                                          onSelect={() => {
+                                              const currentModels = field.value;
+                                              if (currentModels.includes(model)) {
+                                                  field.onChange(currentModels.filter((m) => m !== model));
+                                              } else {
+                                                  field.onChange([...currentModels, model]);
+                                              }
+                                          }}
+                                      >
+                                          <div
+                                          className={cn(
+                                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                              field.value.includes(model)
+                                              ? "bg-primary text-primary-foreground"
+                                              : "opacity-50 [&_svg]:invisible"
+                                          )}
+                                          >
+                                          <Check className={cn("h-4 w-4")} />
+                                          </div>
+                                          {model}
+                                      </CommandItem>
+                                      ))}
+                                  </CommandGroup>
+                                  </CommandList>
+                                </ScrollArea>
                             </Command>
                         </FormControl>
                         <FormMessage />
@@ -479,3 +482,5 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
     </>
   );
 };
+
+    
