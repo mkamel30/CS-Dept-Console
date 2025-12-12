@@ -204,6 +204,22 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
     setIsCancelOpen(true);
   }
 
+  const handlePrintReport = (request: RequestColumn) => {
+    // Reconstruct the full request object for the report generator
+     const fullRequestData: MaintenanceRequest = {
+        ...request,
+        id: request.id,
+        // Ensure createdAt and closingTimestamp are converted to Timestamps if they are not already
+        createdAt: request.createdAt ? Timestamp.fromDate(new Date(request.createdAt)) : Timestamp.now(),
+        closingTimestamp: request.closingTimestamp ? Timestamp.fromDate(new Date(request.closingTimestamp)) : undefined,
+        // Ensure usedParts is in the correct format or an empty array
+        usedParts: request.usedParts || [],
+        status: request.status,
+        priority: request.priority,
+     };
+     generateMaintenanceReport(fullRequestData);
+  }
+
   const confirmAssign = () => {
     if (!firestore || !selectedRequest || !selectedTechnician) return;
     const requestDoc = doc(firestore, 'maintenanceRequests', selectedRequest.id);
@@ -455,7 +471,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
       ) : (
       <DataTable
         searchKeys={["customerName", "id", "machineModel"]}
-        columns={columns({ openDetailsDialog, openAssignDialog, openCloseDialog, openCancelDialog })}
+        columns={columns({ openDetailsDialog, openAssignDialog, openCloseDialog, openCancelDialog, handlePrintReport })}
         data={data}
         searchPlaceholder="بحث باسم العميل، رقم الطلب، أو موديل الماكينة..."
       />
@@ -657,3 +673,5 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
     </>
   );
 };
+
+    

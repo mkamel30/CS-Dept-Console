@@ -31,6 +31,8 @@ export type RequestColumn = {
   complaint: string;
   actionTaken?: string;
   closingTimestamp?: string;
+  usedParts?: { partId: string, partName: string, cost: number, withCost: boolean }[];
+  receiptNumber?: string;
 };
 
 interface ColumnsProps {
@@ -38,6 +40,7 @@ interface ColumnsProps {
   openAssignDialog: (request: RequestColumn) => void;
   openCloseDialog: (request: RequestColumn) => void;
   openCancelDialog: (requestId: string) => void;
+  handlePrintReport: (request: RequestColumn) => void;
 }
 
 const statusVariantMap: Record<RequestColumn['status'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -67,7 +70,7 @@ const priorityTextMap: Record<RequestColumn['priority'], string> = {
 };
 
 
-export const columns = ({ openDetailsDialog, openAssignDialog, openCloseDialog, openCancelDialog }: ColumnsProps): ColumnDef<RequestColumn>[] => [
+export const columns = ({ openDetailsDialog, openAssignDialog, openCloseDialog, openCancelDialog, handlePrintReport }: ColumnsProps): ColumnDef<RequestColumn>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -156,6 +159,7 @@ export const columns = ({ openDetailsDialog, openAssignDialog, openCloseDialog, 
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => openDetailsDialog(request)}>عرض التفاصيل</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handlePrintReport(request)}>طباعة التقرير</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => openAssignDialog(request)} disabled={request.status !== 'Open'}>تعيين فني</DropdownMenuItem>
             <DropdownMenuItem onClick={() => openCloseDialog(request)} disabled={request.status !== 'In Progress'}>إغلاق الطلب</DropdownMenuItem>
@@ -167,3 +171,5 @@ export const columns = ({ openDetailsDialog, openAssignDialog, openCloseDialog, 
     },
   },
 ];
+
+    

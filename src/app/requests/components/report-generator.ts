@@ -43,7 +43,7 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
 
   // Header
   rtlText('تقرير صيانة', pageWidth / 2, 20, { align: 'center' });
-  rtlText(`رقم الطلب: ${request.id}`, pageWidth - margin, 30, { align: 'right' });
+  rtlText(`رقم الطلب: ${request.id.substring(0, 8)}`, pageWidth - margin, 30, { align: 'right' });
   doc.text(`Date: ${format(new Date(), 'yyyy-MM-dd')}`, margin, 30);
   doc.line(margin, 35, pageWidth - margin, 35);
 
@@ -66,17 +66,31 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
 
   // Timestamps
   const createdAt = request.createdAt.toDate();
-  const closedAt = request.closingTimestamp?.toDate() || new Date();
-  const duration = differenceInMinutes(closedAt, createdAt);
-  const durationString = `${duration} minutes`;
+  const closedAt = request.closingTimestamp?.toDate();
+  let durationString = 'الطلب لم يغلق بعد';
+
+  if (closedAt) {
+      const duration = differenceInMinutes(closedAt, createdAt);
+      const days = Math.floor(duration / (60 * 24));
+      const hours = Math.floor((duration % (60 * 24)) / 60);
+      const minutes = duration % 60;
+      durationString = [
+          days > 0 ? `${days} يوم` : '',
+          hours > 0 ? `${hours} ساعة` : '',
+          minutes > 0 ? `${minutes} دقيقة` : ''
+      ].filter(Boolean).join(' و ') || 'أقل من دقيقة';
+  }
+
 
   rtlText('التوقيتات', pageWidth - margin, y, { align: 'right' });
   y += 8;
   rtlText(`تاريخ الإنشاء: ${format(createdAt, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y, { align: 'right' });
   y += 8;
-  rtlText(`تاريخ الإغلاق: ${format(closedAt, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y, { align: 'right' });
-  y+= 8;
-  rtlText(`المدة المستغرقة: ${durationString}`, pageWidth - margin, y, { align: 'right' });
+  if(closedAt){
+    rtlText(`تاريخ الإغلاق: ${format(closedAt, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y, { align: 'right' });
+    y+= 8;
+    rtlText(`المدة المستغرقة: ${durationString}`, pageWidth - margin, y, { align: 'right' });
+  }
 
 
   y += 10;
@@ -96,14 +110,16 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
       y += 7;
   });
 
-  y += 5;
-  rtlText(':الإجراء المتخذ', pageWidth - margin, y, { align: 'right' });
-  y += 8;
-  const actionLines = doc.splitTextToSize(request.actionTaken || '', pageWidth - margin * 2);
-  actionLines.forEach((line: string) => {
-      rtlText(line, pageWidth - margin, y, { align: 'right'});
-      y += 7;
-  });
+  if (request.actionTaken) {
+    y += 5;
+    rtlText(':الإجراء المتخذ', pageWidth - margin, y, { align: 'right' });
+    y += 8;
+    const actionLines = doc.splitTextToSize(request.actionTaken, pageWidth - margin * 2);
+    actionLines.forEach((line: string) => {
+        rtlText(line, pageWidth - margin, y, { align: 'right'});
+        y += 7;
+    });
+  }
   
   
   // Used Parts Table
@@ -156,4 +172,4 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   doc.output('dataurlnewwindow');
 }
 
-
+    

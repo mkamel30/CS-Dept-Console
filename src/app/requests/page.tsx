@@ -1,7 +1,7 @@
 
 "use client";
 
-import { collection, query, where, getDocs, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, Timestamp } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { RequestClient } from "./components/client";
 import { format, isValid } from "date-fns";
@@ -53,6 +53,8 @@ export default function RequestsPage() {
       createdAt: createdAtDate && isValid(createdAtDate) ? format(createdAtDate, "yyyy/MM/dd hh:mm a") : 'N/A',
       actionTaken: item.actionTaken,
       closingTimestamp: closingDate && isValid(closingDate) ? format(closingDate, "yyyy/MM/dd hh:mm a") : undefined,
+      usedParts: item.usedParts,
+      receiptNumber: item.receiptNumber,
     };
   }) : [];
   
@@ -98,3 +100,5 @@ export default function RequestsPage() {
     </div>
   );
 }
+
+    
