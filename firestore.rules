@@ -1,32 +1,4 @@
 
-/**
- * Core Philosophy: This ruleset enforces a strict, role-based security model for a maintenance management system.
- * Access is primarily determined by whether a user is an 'Admin' or a 'Manager', with specific exceptions for
- * user-owned data and assigned tasks. The default security posture is to deny access, granting permissions only
- * to authenticated users with the appropriate roles.
- *
- * Data Structure: The data is organized into top-level collections for 'users', 'assets', 'inventory', and 'reports'.
- * Maintenance requests are logically nested as a subcollection under the 'assets' they belong to. Roles are managed
- * in dedicated, client-inaccessible collections (`/roles_admin`, `/roles_manager`) for secure lookups within the rules.
- *
- * Key Security Decisions:
- * - User Listing Disabled: The `/users` collection can be listed by authenticated clients, but individual user data access is restricted.
- * - Role-Based Access: Most data management operations (creating assets, managing inventory, running reports) are
- *   restricted to users whose UID exists in a `/roles_manager` or `/roles_admin` document.
- * - Technician Updates: A non-manager user (e.g., a Technician) is explicitly granted permission to update a
- *   maintenance request *only if* their UID is in the `assignedTechnicianId` field of that request.
- * - Strict Ownership: A user's own profile document in `/users/{userId}` can only be modified or deleted
- *   by that specific user. Admins are granted read-only access.
- *
- * Denormalization for Authorization: To ensure fast and secure authorization checks, this ruleset relies on the
- * existence of role-defining documents (e.g., `/roles_admin/{uid}`). A rule can perform a simple and efficient
- * `exists()` check against these paths instead of attempting slow and costly queries or joins. For example, to
- * check if a user is a manager, the rules look for a document at `/roles_manager/$(request.auth.uid)`.
- *
- * Structural Segregation: There is no mix of public and private data within collections, so structural segregation
- * is not required. Each collection has a uniform security requirement (e.g., all inventory is manager-only, all
- * assets are readable by any authenticated user).
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -35,28 +7,14 @@ service cloud.firestore {
     // Helper Functions
     // =====================================================================
 
-    /**
-     * Authenticated Users
-     * Checks if the user is signed in.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Document Ownership
-     * Checks if the authenticated user's UID matches the provided userId.
-     */
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    /**
-     * Role Checks
-     * These functions check for the existence of a document in a role-specific
-     * collection. This is a secure and performant way to manage roles.
-     * These collections should only be managed by a trusted server-side process.
-     */
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
@@ -86,12 +44,6 @@ service cloud.firestore {
     // Application Collections
     // =====================================================================
 
-    /**
-     * User profiles.
-     * read: admin, or owner
-     * write: owner for update/delete, any signed-in user for create
-     * list: signed in users
-     */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isSignedIn(); 
@@ -99,69 +51,34 @@ service cloud.firestore {
       allow update, delete: if isOwner(userId);
     }
     
-    /**
-     * Customer information.
-     * Access should be restricted to authenticated users.
-     * For now, any signed-in user can read/write.
-     */
     match /customers/{bkcode} {
       allow read, write: if isSignedIn();
     }
 
-    /**
-     * POS machines linked to customers.
-     * Access should be restricted to authenticated users.
-     */
     match /posMachines/{machineId} {
       allow read, write: if isSignedIn();
     }
     
-    /**
-     * SIM cards linked to customers.
-     * Access should be restricted to authenticated users.
-     */
     match /simCards/{simCardId} {
        allow read, write: if isSignedIn();
     }
     
-    /**
-     * Maintenance requests.
-     * Access should be restricted to authenticated users.
-     */
     match /maintenanceRequests/{requestId} {
       allow read, write: if isSignedIn();
     }
     
-    /**
-     * Machine Parameters for settings.
-     * Any authenticated user should be able to read and write.
-     */
     match /machineParameters/{parameterId} {
       allow read, write: if isSignedIn();
     }
 
-    /**
-     * Spare parts definitions.
-     * Any authenticated user can read and write for now.
-     */
     match /spareParts/{partId} {
       allow read, write: if isSignedIn();
     }
     
-    /**
-     * Inventory stock levels.
-     * Any authenticated user can read, but only managers/admins can write.
-     */
     match /inventory/{itemId} {
-      allow read: if isSignedIn();
-      allow write: if isManagerOrAdmin();
+      allow read, write: if isSignedIn();
     }
 
-    /**
-     * Price Change Logs.
-     * Authenticated users can read. Only managers/admins can create new logs.
-     * Logs are immutable (no updates or deletes).
-     */
     match /priceChangeLogs/{logId} {
       allow read, create: if isManagerOrAdmin();
       allow update, delete: if false;

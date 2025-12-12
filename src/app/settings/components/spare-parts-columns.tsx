@@ -106,3 +106,9 @@ export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): Col
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => openEditDialog(part)}>تعديل</DropdownMenuItem>
             <DropdownMenuItem onClick={() => openDeleteDialog(part.id)} className="text-destructive">حذف</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
+  },
+];
