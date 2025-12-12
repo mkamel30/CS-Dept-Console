@@ -64,7 +64,7 @@ import {
 } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-
+import { Label } from "@/components/ui/label";
 
 import { columns, type SparePartColumn } from "./spare-parts-columns";
 
@@ -370,28 +370,37 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                 <ScrollArea className="h-48">
                                     <div className="p-4">
                                     {availableModels.map((model) => (
-                                        <div key={model} className="flex items-center space-x-2 space-y-1">
-                                        <Checkbox
-                                            id={model}
-                                            checked={field.value?.includes(model)}
-                                            onCheckedChange={(checked) => {
-                                            const currentModels = field.value || [];
-                                            if (checked) {
-                                                field.onChange([...currentModels, model]);
-                                            } else {
-                                                field.onChange(
-                                                currentModels.filter((value) => value !== model)
-                                                );
-                                            }
+                                        <FormField
+                                            key={model}
+                                            control={form.control}
+                                            name="compatibleModels"
+                                            render={({ field }) => {
+                                                return (
+                                                <FormItem
+                                                    key={model}
+                                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                                >
+                                                    <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value?.includes(model)}
+                                                        onCheckedChange={(checked) => {
+                                                        return checked
+                                                            ? field.onChange([...field.value, model])
+                                                            : field.onChange(
+                                                                field.value?.filter(
+                                                                (value) => value !== model
+                                                                )
+                                                            )
+                                                        }}
+                                                    />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">
+                                                    {model}
+                                                    </FormLabel>
+                                                </FormItem>
+                                                )
                                             }}
                                         />
-                                        <label
-                                            htmlFor={model}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                        >
-                                            {model}
-                                        </label>
-                                        </div>
                                     ))}
                                     </div>
                                 </ScrollArea>
@@ -501,6 +510,8 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
 
 
 
+
+    
 
     
 
