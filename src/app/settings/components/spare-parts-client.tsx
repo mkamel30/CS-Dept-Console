@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PlusCircle, Upload, Download, Loader2, X, ChevronsUpDown } from "lucide-react";
+import { PlusCircle, Upload, Download, Loader2, X } from "lucide-react";
 import { collection } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
@@ -352,62 +348,42 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>الموديلات المتوافقة *</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                className="w-full justify-between"
-                              >
-                                {field.value?.length > 0
-                                  ? `${field.value.length} موديلات مختارة`
-                                  : "اختر الموديلات"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <ScrollArea className="h-48">
-                              <div className="p-4">
-                                {availableModels.map((model) => (
-                                  <FormField
-                                    key={model}
-                                    control={form.control}
-                                    name="compatibleModels"
-                                    render={({ field }) => {
-                                      return (
-                                        <FormItem
-                                          key={model}
-                                          className="flex flex-row items-start space-x-3 space-y-0"
-                                        >
-                                          <FormControl>
-                                            <Checkbox
-                                              checked={field.value?.includes(model)}
-                                              onCheckedChange={(checked) => {
-                                                return checked
-                                                  ? field.onChange([...field.value, model])
-                                                  : field.onChange(
-                                                      field.value?.filter(
-                                                        (value) => value !== model
-                                                      )
+                          <ScrollArea className="h-40 w-full rounded-md border p-4">
+                            {availableModels.map((model) => (
+                                <FormField
+                                key={model}
+                                control={form.control}
+                                name="compatibleModels"
+                                render={({ field }) => {
+                                    return (
+                                    <FormItem
+                                        key={model}
+                                        className="flex flex-row items-start space-x-3 space-y-0 mb-4"
+                                    >
+                                        <FormControl>
+                                        <Checkbox
+                                            checked={field.value?.includes(model)}
+                                            onCheckedChange={(checked) => {
+                                            return checked
+                                                ? field.onChange([...field.value, model])
+                                                : field.onChange(
+                                                    field.value?.filter(
+                                                    (value) => value !== model
                                                     )
-                                              }}
-                                            />
-                                          </FormControl>
-                                          <FormLabel className="font-normal">
-                                            {model}
-                                          </FormLabel>
-                                        </FormItem>
-                                      )
-                                    }}
-                                  />
-                                ))}
-                              </div>
-                            </ScrollArea>
-                          </PopoverContent>
-                        </Popover>
-                         <div className="pt-2">
+                                                )
+                                            }}
+                                        />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">
+                                        {model}
+                                        </FormLabel>
+                                    </FormItem>
+                                    )
+                                }}
+                                />
+                            ))}
+                        </ScrollArea>
+                        <div className="pt-2">
                           {(field.value || []).map((model) => (
                             <Badge key={model} variant="secondary" className="mr-1 mb-1">
                               {model}
@@ -511,6 +487,8 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
 
 
 
+
+    
 
     
 
