@@ -30,6 +30,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -49,9 +50,13 @@ interface RequestClientProps {
   isLoading: boolean;
 }
 
-const formSchema = z.object({
+const searchSchema = z.object({
   customerId: z.string().min(1, { message: "رقم العميل مطلوب." }),
 });
+
+const createRequestSchema = z.object({
+    complaint: z.string().min(1, { message: "وصف العطل مطلوب." }),
+})
 
 export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomerMachines, findCustomer, isLoading }) => {
   const firestore = useFirestore();
@@ -59,15 +64,16 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerMachines, setCustomerMachines] = useState<PosMachine[]>([]);
   const [selectedMachine, setSelectedMachine] = useState<PosMachine | null>(null);
+  const [complaint, setComplaint] = useState("");
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const searchForm = useForm<z.infer<typeof searchSchema>>({
+    resolver: zodResolver(searchSchema),
     defaultValues: {
       customerId: "",
     },
   });
 
-  async function onSearchCustomer(values: z.infer<typeof formSchema>) {
+  async function onSearchCustomer(values: z.infer<typeof searchSchema>) {
     const foundCustomer = await findCustomer(values.customerId);
     if (foundCustomer) {
         setCustomer(foundCustomer);
@@ -94,11 +100,11 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
   }
 
   function handleCreateRequest() {
-    if (!selectedMachine || !customer || !firestore) {
+    if (!selectedMachine || !customer || !firestore || !complaint) {
         toast({
             variant: "destructive",
-            title: "خطأ",
-            description: "الرجاء اختيار عميل وماكينة لإنشاء الطلب.",
+            title: "بيانات ناقصة",
+            description: "الرجاء اختيار عميل وماكينة وإدخال وصف للعطل.",
           });
       return;
     }
@@ -113,6 +119,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
       priority: 'Medium',
       technician: 'غير معين',
       createdAt: serverTimestamp(),
+      complaint: complaint,
     };
 
     const requestsCollection = collection(firestore, 'maintenanceRequests');
@@ -125,10 +132,11 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
 
     // Reset state
     setOpen(false);
-    form.reset();
+    searchForm.reset();
     setCustomerMachines([]);
     setSelectedMachine(null);
     setCustomer(null);
+    setComplaint("");
   }
 
   return (
@@ -141,10 +149,11 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
           <Dialog open={open} onOpenChange={(isOpen) => {
             setOpen(isOpen);
             if (!isOpen) {
-                form.reset();
+                searchForm.reset();
                 setCustomer(null);
                 setCustomerMachines([]);
                 setSelectedMachine(null);
+                setComplaint("");
             }
           }}>
             <DialogTrigger asChild>
@@ -153,17 +162,17 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
                 طلب صيانة جديد
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>إنشاء طلب صيانة جديد</DialogTitle>
                   <DialogDescription>
-                    أدخل رقم العميل للبحث عن الماكينات الخاصة به.
+                    أدخل رقم العميل للبحث عن الماكينات الخاصة به، ثم أدخل وصف العطل.
                   </DialogDescription>
                 </DialogHeader>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSearchCustomer)} className="space-y-4">
+                <Form {...searchForm}>
+                  <form onSubmit={searchForm.handleSubmit(onSearchCustomer)} className="space-y-4">
                     <FormField
-                      control={form.control}
+                      control={searchForm.control}
                       name="customerId"
                       render={({ field }) => (
                         <FormItem>
@@ -187,7 +196,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
                 </Form>
 
                 {customerMachines.length > 0 && customer && (
-                    <div className="space-y-4">
+                    <div className="space-y-4 pt-4">
                         <h4 className="font-medium">ماكينات العميل: {customer.client_name}</h4>
                         <Select onValueChange={(value) => setSelectedMachine(customerMachines.find(m => m.id === value) || null)}>
                             <SelectTrigger>
@@ -201,11 +210,21 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
                                 ))}
                             </SelectContent>
                         </Select>
+                        
+                        <div className="space-y-2">
+                            <Label htmlFor="complaint">وصف العطل (الشكوى)</Label>
+                            <Textarea 
+                                id="complaint"
+                                placeholder="صف العطل الذي أبلغ عنه العميل..."
+                                value={complaint}
+                                onChange={(e) => setComplaint(e.target.value)}
+                            />
+                        </div>
                     </div>
                 )}
 
                 <DialogFooter>
-                  <Button onClick={handleCreateRequest} disabled={!selectedMachine}>إنشاء الطلب</Button>
+                  <Button onClick={handleCreateRequest} disabled={!selectedMachine || !complaint}>إنشاء الطلب</Button>
                 </DialogFooter>
             </DialogContent>
           </Dialog>

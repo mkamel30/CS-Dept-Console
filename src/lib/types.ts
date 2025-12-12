@@ -13,6 +13,11 @@ export type MaintenanceRequest = {
   priority: 'Low' | 'Medium' | 'High';
   technician: string;
   notes?: string;
+  complaint: string; // The initial complaint reported by the customer.
+  actionTaken?: string; // The procedure performed by the technician.
+  closingUserId?: string; // UID of the user who closed the request.
+  closingUserName?: string; // Name of the user who closed the request.
+  closingTimestamp?: Timestamp; // When the request was closed.
 };
 
 // Represents a customer entity. The document ID will be the bkcode.

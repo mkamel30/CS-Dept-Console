@@ -53,6 +53,14 @@
         },
         "notes": {
           "type": "string"
+        },
+        "complaint": {
+          "type": "string",
+          "description": "The initial complaint reported by the customer."
+        },
+        "actionTaken": {
+          "type": "string",
+          "description": "The procedure performed by the technician to fix the issue."
         }
       },
       "required": [
@@ -61,7 +69,8 @@
         "customerName",
         "createdAt",
         "status",
-        "priority"
+        "priority",
+        "complaint"
       ]
     },
     "PosMachine": {
@@ -190,23 +199,27 @@
       "type": "object",
       "description": "Represents a user of the maintenance management system.",
       "properties": {
-        "id": {
+        "uid": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Unique identifier for the user (from Firebase Auth)."
         },
-        "name": {
+        "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The user's email address."
+        },
+        "displayName": {
           "type": "string",
           "description": "Full name of the user."
         },
         "role": {
           "type": "string",
-          "description": "User's role in the system (e.g., 'Technician', 'Manager')."
+          "description": "User's role in the system (e.g., 'Technician', 'Manager', 'Admin')."
         }
       },
       "required": [
-        "id",
-        "name",
-        "role"
+        "uid",
+        "email"
       ]
     },
     "MachineParameter": {
