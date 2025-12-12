@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export type InventoryColumn = {
   id: string;
@@ -30,6 +31,25 @@ interface ColumnsProps {
 }
 
 export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): ColumnDef<InventoryColumn>[] => [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="تحديد الكل"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="تحديد الصف"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "partName",
     header: "اسم القطعة",
@@ -79,5 +99,3 @@ export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): Col
     },
   },
 ];
-
-    
