@@ -47,7 +47,7 @@ export default function RequestsPage() {
       status: item.status,
       priority: item.priority,
       technician: item.technician,
-      createdAt: date && isValid(date) ? format(date, "yyyy/MM/dd") : 'N/A',
+      createdAt: date && isValid(date) ? format(date, "yyyy/MM/dd HH:mm") : 'N/A',
     };
   }) : [];
   
