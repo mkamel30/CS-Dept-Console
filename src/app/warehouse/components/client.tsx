@@ -205,7 +205,7 @@ export const WarehouseClient: React.FC<WarehouseClientProps> = ({ data, sparePar
                           <SelectContent>
                             {spareParts.map((part) => (
                               <SelectItem key={part.id} value={part.id}>
-                                {part.name} ({part.partNumber || 'N/A'})
+                                {part.name} - متوافقة مع: {part.compatibleModels.join(', ')}
                               </SelectItem>
                             ))}
                           </SelectContent>
