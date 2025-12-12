@@ -2,7 +2,7 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { MaintenanceRequest } from '@/lib/types';
-import { format, differenceInMinutes } from 'date-fns';
+import { format, differenceInMinutes, isValid } from 'date-fns';
 
 // Extend the jsPDF type definitions to include the autoTable method.
 declare module 'jspdf' {
@@ -14,17 +14,20 @@ declare module 'jspdf' {
 export function generateMaintenanceReport(request: MaintenanceRequest) {
   const doc = new jsPDF();
 
-  // Set the font to Amiri for Arabic support
+  // It's crucial to set the font that supports Arabic characters.
+  // jsPDF has some built-in fonts, but for full Arabic support,
+  // including a custom font is the most reliable approach.
+  // For now, we will assume 'Amiri' is available through a standard setup.
+  // If it's not, it will fall back, but we must set it.
   doc.setFont('Amiri', 'normal');
-
-  // Helper function to handle RTL text correctly
-  const rtlText = (text: string, x: number, y: number, options?: any) => {
-    // Ensure the font is set before each text call for safety
-    doc.text(text, x, y, { ...options, align: 'right', lang: 'ar', font: 'Amiri' });
-  };
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
+
+  // Helper to ensure text is rendered RTL
+  const rtlText = (text: string, x: number, y: number, options?: any) => {
+    doc.text(text, x, y, { align: 'right', ...options });
+  };
 
   // Header
   doc.setFontSize(20);
@@ -48,12 +51,13 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   y += 10;
 
   // Timestamps
-  const createdAt = request.createdAt ? new Date(request.createdAt) : null;
-  const closedAt = request.closingTimestamp ? new Date(request.closingTimestamp) : null;
+  const createdAtDate = request.createdAt ? new Date(request.createdAt) : null;
+  const closedAtDate = request.closingTimestamp ? new Date(request.closingTimestamp) : null;
+  
   let durationString = 'الطلب لم يغلق بعد';
 
-  if (createdAt && closedAt) {
-      const duration = differenceInMinutes(closedAt, createdAt);
+  if (createdAtDate && isValid(createdAtDate) && closedAtDate && isValid(closedAtDate)) {
+      const duration = differenceInMinutes(closedAtDate, createdAtDate);
       const days = Math.floor(duration / (60 * 24));
       const hours = Math.floor((duration % (60 * 24)) / 60);
       const minutes = duration % 60;
@@ -64,24 +68,21 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
       ].filter(Boolean).join(' و ') || 'أقل من دقيقة';
   }
 
-
   rtlText('التوقيتات', pageWidth - margin, y);
   y += 8;
-  if(createdAt){
-    rtlText(`تاريخ الإنشاء: ${format(createdAt, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y);
+  if(createdAtDate && isValid(createdAtDate)){
+    rtlText(`تاريخ الإنشاء: ${format(createdAtDate, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y);
     y += 8;
   }
-  if(closedAt){
-    rtlText(`تاريخ الإغلاق: ${format(closedAt, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y);
+  if(closedAtDate && isValid(closedAtDate)){
+    rtlText(`تاريخ الإغلاق: ${format(closedAtDate, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y);
     y+= 8;
     rtlText(`المدة المستغرقة: ${durationString}`, pageWidth - margin, y);
   }
 
-
   y += 10;
   doc.line(margin, y, pageWidth - margin, y);
   y += 10;
-
 
   // Complaint and Action
   rtlText('الشكوى والإجراء المتخذ', pageWidth - margin, y);
@@ -89,19 +90,17 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   rtlText('الشكوى:', pageWidth - margin, y);
   y += 8;
   const complaintLines = doc.splitTextToSize(request.complaint || '', pageWidth - margin * 2);
-  rtlText(complaintLines, pageWidth - margin, y);
+  rtlText(complaintLines.join('\n'), pageWidth - margin, y);
   y += complaintLines.length * 7;
   
-
   if (request.actionTaken) {
     y += 5;
     rtlText('الإجراء المتخذ:', pageWidth - margin, y);
     y += 8;
     const actionLines = doc.splitTextToSize(request.actionTaken, pageWidth - margin * 2);
-    rtlText(actionLines, pageWidth - margin, y);
+    rtlText(actionLines.join('\n'), pageWidth - margin, y);
     y += actionLines.length * 7;
   }
-  
   
   // Used Parts Table
   if (request.usedParts && request.usedParts.length > 0) {
@@ -122,7 +121,7 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
       body: body,
       theme: 'grid',
       styles: {
-        font: 'Amiri',
+        font: 'Amiri', // Specify font for table
         halign: 'right',
         cellPadding: 2,
       },
@@ -132,11 +131,11 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
         halign: 'center'
       },
     });
-
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc as any).lastAutoTable.finalY;
   }
   
   // Footer
+  y += 10;
   const totalCost = request.usedParts?.filter(p => p.withCost).reduce((acc, part) => acc + part.cost, 0) || 0;
   
   if (request.receiptNumber) {
@@ -147,10 +146,8 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   rtlText(`التكلفة الإجمالية: ${formattedTotalCost}`, pageWidth - margin, y + 8);
   doc.text(`الفني: ${request.technician}`, margin, y + 8);
   
-
   doc.line(margin, doc.internal.pageSize.getHeight() - 30, pageWidth - margin, doc.internal.pageSize.getHeight() - 30);
   rtlText('شكرًا لتعاملكم معنا', pageWidth / 2, doc.internal.pageSize.getHeight() - 20, { align: 'center' });
-
 
   // Open in new tab
   doc.output('dataurlnewwindow');
