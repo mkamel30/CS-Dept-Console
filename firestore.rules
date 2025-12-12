@@ -9,12 +9,12 @@
  * in dedicated, client-inaccessible collections (`/roles_admin`, `/roles_manager`) for secure lookups within the rules.
  *
  * Key Security Decisions:
- * - User Listing Disabled: The `/users` collection cannot be listed by any client to protect user privacy.
+ * - User Listing Disabled: The `/users` collection can be listed by authenticated clients, but individual user data access is restricted.
  * - Role-Based Access: Most data management operations (creating assets, managing inventory, running reports) are
  *   restricted to users whose UID exists in a `/roles_manager` or `/roles_admin` document.
  * - Technician Updates: A non-manager user (e.g., a Technician) is explicitly granted permission to update a
  *   maintenance request *only if* their UID is in the `assignedTechnicianId` field of that request.
- * - Strict Ownership: A user's own profile document in `/users/{userId}` can only be created, modified, or deleted
+ * - Strict Ownership: A user's own profile document in `/users/{userId}` can only be modified or deleted
  *   by that specific user. Admins are granted read-only access.
  *
  * Denormalization for Authorization: To ensure fast and secure authorization checks, this ruleset relies on the
@@ -88,13 +88,13 @@ service cloud.firestore {
     /**
      * User profiles.
      * read: admin, or owner
-     * write: owner
+     * write: owner for update/delete, any signed-in user for create
      * list: signed in users
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isSignedIn(); 
-      allow create: if isOwner(userId);
+      allow create: if isSignedIn();
       allow update, delete: if isOwner(userId);
     }
     
