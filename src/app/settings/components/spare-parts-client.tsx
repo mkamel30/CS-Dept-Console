@@ -382,7 +382,7 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                         return (
                                           <CommandItem
                                             key={model}
-                                            onSelect={() => {
+                                            onSelect={(currentValue) => {
                                               if (isSelected) {
                                                 field.onChange(field.value.filter((m) => m !== model));
                                               } else {
@@ -506,4 +506,5 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
     
 
     
+
 
