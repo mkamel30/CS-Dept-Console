@@ -142,6 +142,7 @@ export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLo
                             </FormControl>
                             <SelectContent>
                                 <SelectItem value="Technician">فني</SelectItem>
+                                <SelectItem value="CustomerService">خدمة عملاء</SelectItem>
                                 <SelectItem value="Manager">مدير</SelectItem>
                                 <SelectItem value="Admin">مسؤول</SelectItem>
                             </SelectContent>

@@ -25,12 +25,14 @@ export type TechnicianColumn = {
 
 const roleVariantMap: Record<string, 'default' | 'secondary' | 'destructive'> = {
   'Technician': 'secondary',
+  'CustomerService': 'default',
   'Manager': 'default',
   'Admin': 'destructive',
 };
 
 const roleTextMap: Record<string, string> = {
     'Technician': 'فني',
+    'CustomerService': 'خدمة عملاء',
     'Manager': 'مدير',
     'Admin': 'مسؤول'
 };
