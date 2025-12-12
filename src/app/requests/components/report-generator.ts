@@ -12,7 +12,7 @@ import { ar } from 'date-fns/locale';
 // 1. Get a .ttf font file (e.g., from Google Fonts).
 // 2. Use a tool or script to convert it to a Base64 string.
 // 3. Create a .js file like: export const arabicFont = 'BASE64_STRING';
-import { arabicFont } from './arabic-font';
+import { arabicFont } from './arabic-font.js';
 
 
 // Extend the jsPDF type definitions to include the autoTable method.
@@ -155,4 +155,5 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   // Open in new tab
   doc.output('dataurlnewwindow');
 }
+
 
