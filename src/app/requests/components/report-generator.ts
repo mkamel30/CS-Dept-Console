@@ -20,8 +20,7 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   // Helper function to handle RTL text correctly
   const rtlText = (text: string, x: number, y: number, options?: any) => {
     // Ensure the font is set before each text call for safety
-    doc.setFont('Amiri', 'normal');
-    doc.text(text, x, y, { ...options, align: 'right', lang: 'ar' });
+    doc.text(text, x, y, { ...options, align: 'right', lang: 'ar', font: 'Amiri' });
   };
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -49,11 +48,11 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   y += 10;
 
   // Timestamps
-  const createdAt = request.createdAt ? new Date(request.createdAt) : new Date();
+  const createdAt = request.createdAt ? new Date(request.createdAt) : null;
   const closedAt = request.closingTimestamp ? new Date(request.closingTimestamp) : null;
   let durationString = 'الطلب لم يغلق بعد';
 
-  if (closedAt) {
+  if (createdAt && closedAt) {
       const duration = differenceInMinutes(closedAt, createdAt);
       const days = Math.floor(duration / (60 * 24));
       const hours = Math.floor((duration % (60 * 24)) / 60);
@@ -68,8 +67,10 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
 
   rtlText('التوقيتات', pageWidth - margin, y);
   y += 8;
-  rtlText(`تاريخ الإنشاء: ${format(createdAt, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y);
-  y += 8;
+  if(createdAt){
+    rtlText(`تاريخ الإنشاء: ${format(createdAt, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y);
+    y += 8;
+  }
   if(closedAt){
     rtlText(`تاريخ الإغلاق: ${format(closedAt, 'yyyy/MM/dd hh:mm a')}`, pageWidth - margin, y);
     y+= 8;
