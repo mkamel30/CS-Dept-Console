@@ -18,7 +18,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
-import { SimCardColumn } from "./columns";
+import { columns, SimCardColumn } from "./columns";
 
 interface SimCardClientProps {
   data: SimCardColumn[];
