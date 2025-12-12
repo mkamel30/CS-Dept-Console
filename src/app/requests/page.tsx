@@ -22,9 +22,16 @@ export default function RequestsPage() {
   const formattedRequests: RequestColumn[] = requestsData ? requestsData.map(item => {
     const date = item.createdAt?.toDate();
     return {
-      ...item,
       id: item.id,
-      createdDate: date && isValid(date) ? format(date, "yyyy/MM/dd") : 'N/A',
+      posMachineId: item.posMachineId,
+      customerName: item.customerName,
+      machineModel: item.machineModel || 'N/A',
+      machineManufacturer: item.machineManufacturer || 'N/A',
+      complaint: item.complaint,
+      status: item.status,
+      priority: item.priority,
+      technician: item.technician,
+      createdAt: date && isValid(date) ? format(date, "yyyy/MM/dd") : 'N/A',
     };
   }) : [];
   

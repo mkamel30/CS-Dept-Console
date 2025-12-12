@@ -1,3 +1,4 @@
+
 import { Timestamp } from "firebase/firestore";
 
 // Represents a maintenance request for a POS machine.

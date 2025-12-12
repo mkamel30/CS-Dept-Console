@@ -17,14 +17,15 @@ import {
 
 export type RequestColumn = {
   id: string;
-  machineId: string;
+  posMachineId: string;
   machineModel: string;
   machineManufacturer: string;
   customerName: string;
   status: 'Open' | 'In Progress' | 'Closed' | 'Cancelled';
   priority: 'Low' | 'Medium' | 'High';
   technician: string;
-  createdDate: string;
+  createdAt: string;
+  complaint: string;
 };
 
 const statusVariantMap: Record<RequestColumn['status'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -87,8 +88,12 @@ export const columns: ColumnDef<RequestColumn>[] = [
     header: "الموديل",
   },
     {
-    accessorKey: "machineManufacturer",
-    header: "المصنع",
+    accessorKey: "complaint",
+    header: "الشكوى",
+    cell: ({ row }) => {
+        const complaint = row.original.complaint;
+        return <div className="truncate max-w-xs">{complaint}</div>
+    }
   },
   {
     accessorKey: "status",
@@ -111,7 +116,7 @@ export const columns: ColumnDef<RequestColumn>[] = [
     header: "الفني",
   },
   {
-    accessorKey: "createdDate",
+    accessorKey: "createdAt",
     header: ({ column }) => {
       return (
         <Button

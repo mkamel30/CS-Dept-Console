@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { PosMachine, Customer } from "@/lib/types";
+import { Label } from "@/components/ui/label";
 
 import { columns, type RequestColumn } from "./columns";
 
@@ -53,10 +54,6 @@ interface RequestClientProps {
 const searchSchema = z.object({
   customerId: z.string().min(1, { message: "رقم العميل مطلوب." }),
 });
-
-const createRequestSchema = z.object({
-    complaint: z.string().min(1, { message: "وصف العطل مطلوب." }),
-})
 
 export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomerMachines, findCustomer, isLoading }) => {
   const firestore = useFirestore();
@@ -112,9 +109,9 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
     const newRequest = {
       customerId: customer.bkcode,
       posMachineId: selectedMachine.id,
-      machineModel: selectedMachine.model,
-      machineManufacturer: selectedMachine.manufacturer,
       customerName: customer.client_name,
+      machineModel: selectedMachine.model || 'N/A',
+      machineManufacturer: selectedMachine.manufacturer || 'N/A',
       status: 'Open',
       priority: 'Medium',
       technician: 'غير معين',
@@ -231,10 +228,10 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
         </div>
       </div>
       <DataTable
-        searchKey="customerName"
+        searchKeys={["customerName", "id", "machineModel"]}
         columns={columns}
         data={data}
-        searchPlaceholder="بحث عن عميل..."
+        searchPlaceholder="بحث باسم العميل، رقم الطلب، أو موديل الماكينة..."
       />
     </>
   );
