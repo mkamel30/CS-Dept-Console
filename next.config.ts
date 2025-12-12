@@ -37,6 +37,15 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
       'https://6000-firebase-studio-1765460332705.cluster-fbfjltn375c6wqxlhoehbz44sk.cloudworkstations.dev',
   ],
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
