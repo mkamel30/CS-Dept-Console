@@ -72,23 +72,33 @@ export type MachineParameter = {
 // Represents the definition and properties of a spare part.
 export type SparePart = {
   id: string; // Document ID
-  partNumber: string;
+  partNumber?: string; // Optional SKU
   name: string;
   description?: string;
   compatibleModels: string[];
   defaultCost: number;
-  isConsumable: boolean;
-  allowsMultiple: boolean;
+  isConsumable?: boolean;
+  allowsMultiple?: boolean;
 };
 
 // Represents the stock level of a specific spare part in inventory.
 export type InventoryItem = {
   id: string; // Document ID
-  partNumber: string; // Links to SparePart
+  partId: string; // Links to SparePart ID
   quantity: number;
   minLevel: number;
   location: string;
 };
+
+// Logs changes to the defaultCost of a SparePart.
+export type PriceChangeLog = {
+    id: string; // Document ID
+    partId: string; // ID of the SparePart
+    oldCost: number;
+    newCost: number;
+    changedAt: Timestamp;
+    userId: string; // UID of the user who made the change
+}
 
 export type Asset = {
   id: string;
@@ -115,5 +125,3 @@ export type User = {
   displayName?: string;
   role?: string;
 };
-
-    

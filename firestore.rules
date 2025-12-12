@@ -157,7 +157,15 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isManagerOrAdmin();
     }
+
+    /**
+     * Price Change Logs.
+     * Authenticated users can read. Only managers/admins can create new logs.
+     * Logs are immutable (no updates or deletes).
+     */
+    match /priceChangeLogs/{logId} {
+      allow read, create: if isManagerOrAdmin();
+      allow update, delete: if false;
+    }
   }
 }
-
-    

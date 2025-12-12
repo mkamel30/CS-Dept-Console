@@ -250,7 +250,7 @@
       "properties": {
         "partNumber": {
           "type": "string",
-          "description": "The unique identifier or SKU for the spare part."
+          "description": "The optional unique identifier or SKU for the spare part."
         },
         "name": {
           "type": "string",
@@ -280,8 +280,9 @@
         }
       },
       "required": [
-        "partNumber",
-        "name"
+        "name",
+        "compatibleModels",
+        "defaultCost"
       ]
     },
     "InventoryItem": {
@@ -289,9 +290,9 @@
       "type": "object",
       "description": "Represents the stock level of a specific spare part in inventory.",
       "properties": {
-        "partNumber": {
+        "partId": {
           "type": "string",
-          "description": "The unique identifier for the spare part, linking to SparePart."
+          "description": "The ID of the spare part, linking to SparePart."
         },
         "quantity": {
           "type": "number",
@@ -307,8 +308,40 @@
         }
       },
       "required": [
-        "partNumber",
+        "partId",
         "quantity"
+      ]
+    },
+    "PriceChangeLog": {
+      "title": "PriceChangeLog",
+      "type": "object",
+      "description": "Logs changes to the defaultCost of a SparePart.",
+      "properties": {
+        "partId": {
+          "type": "string",
+          "description": "The ID of the SparePart that was changed."
+        },
+        "oldCost": {
+          "type": "number"
+        },
+        "newCost": {
+          "type": "number"
+        },
+        "changedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who made the price change."
+        }
+      },
+      "required": [
+        "partId",
+        "oldCost",
+        "newCost",
+        "changedAt",
+        "userId"
       ]
     }
   },
@@ -366,8 +399,12 @@
         "$ref": "#/entities/InventoryItem"
       },
       "description": "Tracks the stock levels for each spare part."
+    },
+    "/priceChangeLogs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/PriceChangeLog"
+      },
+      "description": "Logs all price changes for spare parts for auditing purposes."
     }
   }
 }
-
-    
