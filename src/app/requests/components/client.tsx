@@ -159,7 +159,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
       customerName: customer.client_name,
       machineModel: selectedMachine.model || 'N/A',
       machineManufacturer: selectedMachine.manufacturer || 'N/A',
-      serialNumber: selectedMachine.serialNumber, // Add this
+      serialNumber: selectedMachine.serialNumber,
       status: 'Open',
       priority: 'Medium',
       technician: 'غير معين',
@@ -450,7 +450,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
             <div className="space-y-4 text-sm">
                 <p><strong>العميل:</strong> {selectedRequest.customerName}</p>
                 <p><strong>الماكينة:</strong> {selectedRequest.machineModel} ({selectedRequest.machineManufacturer})</p>
-                <p><strong>الرقم التسلسلي:</strong> {selectedRequest.serialNumber}</p>
+                <p><strong>رقم الماكينة:</strong> {selectedRequest.serialNumber}</p>
                 <p><strong>الفني:</strong> {selectedRequest.technician}</p>
                 <p><strong>الحالة:</strong> {selectedRequest.status}</p>
                 <p><strong>تاريخ الإنشاء:</strong> {selectedRequest.createdAt}</p>
@@ -592,3 +592,5 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
     </>
   );
 };
+
+    
