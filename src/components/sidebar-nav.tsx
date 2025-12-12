@@ -34,7 +34,6 @@ const navItems = [
   { href: '/sim-cards', label: 'شرائح SIM', icon: Radio },
   { href: '/customers', label: 'العملاء', icon: Building },
   { href: '/portal', label: 'بوابة العميل', icon: Search },
-  { href: '/inventory', label: 'قطع الغيار', icon: Package },
   { href: '/warehouse', label: 'المخزن', icon: Warehouse },
   { href: '/technicians', label: 'الفنيون', icon: Users },
   { href: '/reports', label: 'التقارير', icon: FileText },

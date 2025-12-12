@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useState } from "react";
@@ -57,9 +58,16 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 
-import { columns, type SparePartColumn } from "./columns";
+import { columns, type SparePartColumn } from "./spare-parts-columns";
 
 interface SparePartClientProps {
   data: SparePartColumn[];
@@ -74,7 +82,7 @@ const formSchema = z.object({
   compatibleModels: z.array(z.string()).min(1, { message: "يجب اختيار موديل واحد على الأقل."}),
 });
 
-export const SparePartClient: React.FC<SparePartClientProps> = ({ data, isLoading, availableModels }) => {
+export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoading, availableModels }) => {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -231,6 +239,14 @@ export const SparePartClient: React.FC<SparePartClientProps> = ({ data, isLoadin
 
   return (
     <>
+    <Card>
+      <CardHeader>
+        <CardTitle>قواعد قطع الغيار</CardTitle>
+        <CardDescription>
+          إدارة تعريفات قطع الغيار، أسعارها، والموديلات المتوافقة معها.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
       <Dialog open={isConfirming} onOpenChange={setIsConfirming}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
@@ -268,9 +284,7 @@ export const SparePartClient: React.FC<SparePartClientProps> = ({ data, isLoadin
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">قطع الغيار ({data.length})</h2>
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-end space-x-2 pb-4">
            <Dialog open={isAddPartOpen} onOpenChange={setAddPartOpen}>
             <DialogTrigger asChild>
               <Button disabled={isLoading || isProcessing}>
@@ -439,7 +453,6 @@ export const SparePartClient: React.FC<SparePartClientProps> = ({ data, isLoadin
             disabled={isProcessing}
           />
         </div>
-      </div>
       
       {isProcessing && (
           <div className="w-full space-y-2 pt-4">
@@ -461,6 +474,8 @@ export const SparePartClient: React.FC<SparePartClientProps> = ({ data, isLoadin
           searchPlaceholder="بحث بالاسم، رقم القطعة، أو الموديل..." 
         />
       )}
+      </CardContent>
+    </Card>
     </>
   );
 };
