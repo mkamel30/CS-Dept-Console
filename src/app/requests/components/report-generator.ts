@@ -1,4 +1,3 @@
-
 'use client';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
@@ -32,7 +31,7 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
 
   // Header
   doc.setFontSize(20);
-  doc.text('تقرير صيانة', pageWidth / 2, 20, { align: 'center' });
+  rtlText('تقرير صيانة', pageWidth / 2, 20, { align: 'center' });
   doc.setFontSize(12);
   rtlText(`رقم الطلب: ${request.id.substring(0, 8)}`, pageWidth - margin, 30);
   doc.text(`Date: ${format(new Date(), 'yyyy-MM-dd')}`, margin, 30);
@@ -155,7 +154,7 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   
 
   doc.line(margin, doc.internal.pageSize.getHeight() - 30, pageWidth - margin, doc.internal.pageSize.getHeight() - 30);
-  doc.text('شكرًا لتعاملكم معنا', pageWidth / 2, doc.internal.pageSize.getHeight() - 20, { align: 'center' });
+  rtlText('شكرًا لتعاملكم معنا', pageWidth / 2, doc.internal.pageSize.getHeight() - 20, { align: 'center' });
 
 
   // Open in new tab
