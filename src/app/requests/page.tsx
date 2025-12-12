@@ -6,7 +6,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebas
 import { RequestClient } from "./components/client";
 import { format, isValid } from "date-fns";
 import type { RequestColumn } from "./components/columns";
-import type { MaintenanceRequest, PosMachine, Customer } from "@/lib/types";
+import type { MaintenanceRequest, PosMachine, Customer, User } from "@/lib/types";
 
 export default function RequestsPage() {
   const firestore = useFirestore();
@@ -16,8 +16,13 @@ export default function RequestsPage() {
     () => (firestore && user) ? query(collection(firestore, "maintenanceRequests")) : null,
     [firestore, user]
   );
+  const techniciansQuery = useMemoFirebase(
+    () => (firestore && user) ? query(collection(firestore, "users")) : null,
+    [firestore, user]
+  );
   
   const { data: requestsData, isLoading: isRequestsLoading } = useCollection<MaintenanceRequest>(requestsQuery);
+  const { data: techniciansData, isLoading: isTechniciansLoading } = useCollection<User>(techniciansQuery);
 
   const formattedRequests: RequestColumn[] = requestsData ? requestsData.map(item => {
     const date = item.createdAt?.toDate();
@@ -35,7 +40,7 @@ export default function RequestsPage() {
     };
   }) : [];
   
-  const isLoading = isUserLoading || isRequestsLoading;
+  const isLoading = isUserLoading || isRequestsLoading || isTechniciansLoading;
 
   const findCustomerMachines = async (customerId: string): Promise<PosMachine[]> => {
     if (!firestore) return [];
@@ -51,7 +56,6 @@ export default function RequestsPage() {
   const findCustomer = async (customerId: string): Promise<Customer | null> => {
       if (!firestore) return null;
       try {
-          const customerRef = doc(firestore, "customers", customerId);
           const docSnap = await getDocs(query(collection(firestore, "customers"), where("bkcode", "==", customerId)));
           
           if (!docSnap.empty) {
@@ -68,6 +72,7 @@ export default function RequestsPage() {
     <div className="flex-1 space-y-4">
       <RequestClient 
         data={formattedRequests} 
+        technicians={techniciansData || []}
         findCustomerMachines={findCustomerMachines}
         findCustomer={findCustomer}
         isLoading={isLoading}
@@ -75,3 +80,5 @@ export default function RequestsPage() {
     </div>
   );
 }
+
+    

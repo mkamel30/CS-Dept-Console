@@ -1,3 +1,4 @@
+
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -12,6 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 export type PosMachineColumn = {
   id: string;
@@ -20,9 +22,15 @@ export type PosMachineColumn = {
   model: string;
   manufacturer: string;
   customerId: string;
+  isMain?: boolean;
 };
 
-export const columns: ColumnDef<PosMachineColumn>[] = [
+interface ColumnsProps {
+  openEditDialog: (machine: PosMachineColumn) => void;
+  openDeleteDialog: (machineId: string) => void;
+}
+
+export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): ColumnDef<PosMachineColumn>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -63,6 +71,13 @@ export const columns: ColumnDef<PosMachineColumn>[] = [
     header: "رقم العميل",
   },
   {
+    accessorKey: "isMain",
+    header: "رئيسية",
+    cell: ({ row }) => {
+      return row.original.isMain ? <Badge>نعم</Badge> : <Badge variant="outline">لا</Badge>;
+    },
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const machine = row.original;
@@ -81,11 +96,13 @@ export const columns: ColumnDef<PosMachineColumn>[] = [
             >
               نسخ معرف الماكينة
             </DropdownMenuItem>
-            <DropdownMenuItem>تعديل</DropdownMenuItem>
-            <DropdownMenuItem>حذف</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEditDialog(machine)}>تعديل</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDeleteDialog(machine.id)} className="text-destructive">حذف</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
 ];
+
+    

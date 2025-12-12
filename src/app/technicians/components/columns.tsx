@@ -23,6 +23,11 @@ export type TechnicianColumn = {
   role: string;
 };
 
+interface ColumnsProps {
+  openEditDialog: (technician: TechnicianColumn) => void;
+  openDeleteDialog: (technicianId: string) => void;
+}
+
 const roleVariantMap: Record<string, 'default' | 'secondary' | 'destructive'> = {
   'Technician': 'secondary',
   'CustomerService': 'default',
@@ -38,7 +43,7 @@ const roleTextMap: Record<string, string> = {
 };
 
 
-export const columns: ColumnDef<TechnicianColumn>[] = [
+export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): ColumnDef<TechnicianColumn>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -96,11 +101,13 @@ export const columns: ColumnDef<TechnicianColumn>[] = [
             >
               نسخ معرف الفني
             </DropdownMenuItem>
-            <DropdownMenuItem>تعديل الصلاحيات</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">حذف الفني</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEditDialog(technician)}>تعديل الدور</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDeleteDialog(technician.id)} className="text-destructive">حذف الفني</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
 ];
+
+    

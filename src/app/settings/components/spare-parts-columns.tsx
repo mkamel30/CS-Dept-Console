@@ -23,7 +23,12 @@ export type SparePartColumn = {
   defaultCost: number;
 };
 
-export const columns: ColumnDef<SparePartColumn>[] = [
+interface ColumnsProps {
+  openEditDialog: (part: SparePartColumn) => void;
+  openDeleteDialog: (partId: string) => void;
+}
+
+export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): ColumnDef<SparePartColumn>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -99,11 +104,5 @@ export const columns: ColumnDef<SparePartColumn>[] = [
             >
               نسخ معرف القطعة
             </DropdownMenuItem>
-            <DropdownMenuItem>تعديل</DropdownMenuItem>
-            <DropdownMenuItem>حذف</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-  },
-];
+            <DropdownMenuItem onClick={() => openEditDialog(part)}>تعديل</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDeleteDialog(part.id)} className="text-destructive">حذف</DropdownMenuItem>

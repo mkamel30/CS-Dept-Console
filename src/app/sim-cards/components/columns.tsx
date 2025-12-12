@@ -21,7 +21,12 @@ export type SimCardColumn = {
   customerId: string;
 };
 
-export const columns: ColumnDef<SimCardColumn>[] = [
+interface ColumnsProps {
+  openEditDialog: (sim: SimCardColumn) => void;
+  openDeleteDialog: (simId: string) => void;
+}
+
+export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): ColumnDef<SimCardColumn>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -72,11 +77,13 @@ export const columns: ColumnDef<SimCardColumn>[] = [
             >
               نسخ معرف الشريحة
             </DropdownMenuItem>
-            <DropdownMenuItem>تعديل</DropdownMenuItem>
-            <DropdownMenuItem>حذف</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEditDialog(simCard)}>تعديل</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDeleteDialog(simCard.id)} className="text-destructive">حذف</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
 ];
+
+    

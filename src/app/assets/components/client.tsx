@@ -2,8 +2,11 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { PlusCircle, Upload, Download, Loader2 } from "lucide-react";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs, query, doc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -24,7 +27,26 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Table,
   TableBody,
@@ -33,8 +55,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, addDocumentNonBlocking, useUser, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, addDocumentNonBlocking, useUser, useCollection, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { MachineParameter } from "@/lib/types";
 
 import { columns, type PosMachineColumn } from "./columns";
@@ -43,6 +67,15 @@ interface PosMachineClientProps {
   data: PosMachineColumn[];
   isLoading: boolean;
 }
+
+const formSchema = z.object({
+  serialNumber: z.string().min(1, "الرقم التسلسلي مطلوب"),
+  posId: z.string().optional(),
+  customerId: z.string().min(1, "رقم العميل مطلوب"),
+  isMain: z.boolean().default(false),
+  model: z.string().optional(),
+  manufacturer: z.string().optional(),
+});
 
 export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoading }) => {
   const { toast } = useToast();
@@ -54,12 +87,27 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
 
   const [isConfirming, setIsConfirming] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
+  
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingMachine, setEditingMachine] = useState<PosMachineColumn | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingMachineId, setDeletingMachineId] = useState<string | null>(null);
 
   const parametersQuery = useMemoFirebase(
     () => firestore ? query(collection(firestore, "machineParameters")) : null,
     [firestore]
   );
   const { data: machineParameters, isLoading: isLoadingParameters } = useCollection<MachineParameter>(parametersQuery);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const editForm = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
+
 
   const getMachineDetailsFromSerial = (serial: string) => {
     if (!machineParameters) {
@@ -206,6 +254,47 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
      XLSX.writeFile(wb, "Current_PosMachines_Data.xlsx");
   };
 
+  const onAddSubmit = (values: z.infer<typeof formSchema>) => {
+    if (!firestore) return;
+    const details = getMachineDetailsFromSerial(values.serialNumber);
+    const machineData = { ...values, ...details };
+
+    addDocumentNonBlocking(collection(firestore, 'posMachines'), machineData);
+    toast({ title: "تمت الإضافة بنجاح" });
+    setIsAddDialogOpen(false);
+    form.reset();
+  };
+
+  const onEditSubmit = (values: z.infer<typeof formSchema>) => {
+    if (!firestore || !editingMachine) return;
+    const details = getMachineDetailsFromSerial(values.serialNumber);
+    const machineData = { ...values, ...details };
+    
+    updateDocumentNonBlocking(doc(firestore, 'posMachines', editingMachine.id), machineData);
+    toast({ title: "تم التحديث بنجاح" });
+    setIsEditDialogOpen(false);
+    setEditingMachine(null);
+  };
+
+  const openEditDialog = (machine: PosMachineColumn) => {
+    setEditingMachine(machine);
+    editForm.reset(machine);
+    setIsEditDialogOpen(true);
+  };
+  
+  const openDeleteDialog = (machineId: string) => {
+    setDeletingMachineId(machineId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!firestore || !deletingMachineId) return;
+    deleteDocumentNonBlocking(doc(firestore, 'posMachines', deletingMachineId));
+    toast({ title: "تم الحذف بنجاح" });
+    setIsDeleteDialogOpen(false);
+    setDeletingMachineId(null);
+  };
+
   return (
     <>
       <Dialog open={isConfirming} onOpenChange={setIsConfirming}>
@@ -247,10 +336,32 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">ماكينات نقاط البيع ({data.length})</h2>
         <div className="flex items-center space-x-2">
-          <Button disabled={isLoading || isProcessing}>
-            <PlusCircle className="ml-2 h-4 w-4" />
-            إضافة ماكينة يدوياً
-          </Button>
+           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+             <DialogTrigger asChild>
+                <Button disabled={isLoading || isProcessing}>
+                    <PlusCircle className="ml-2 h-4 w-4" />
+                    إضافة ماكينة يدوياً
+                </Button>
+             </DialogTrigger>
+             <DialogContent>
+                 <DialogHeader>
+                    <DialogTitle>إضافة ماكينة جديدة</DialogTitle>
+                 </DialogHeader>
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="serialNumber" render={({ field }) => (<FormItem><FormLabel>الرقم التسلسلي *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="posId" render={({ field }) => (<FormItem><FormLabel>POS ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="customerId" render={({ field }) => (<FormItem><FormLabel>رقم العميل *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="isMain" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>تعيين كـ ماكينة رئيسية للعميل</FormLabel></div></FormItem>)} />
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                            <Button type="submit">إضافة</Button>
+                        </DialogFooter>
+                    </form>
+                 </Form>
+             </DialogContent>
+           </Dialog>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" disabled={isLoading || isProcessing}>
@@ -302,11 +413,47 @@ export const PosMachineClient: React.FC<PosMachineClientProps> = ({ data, isLoad
       ) : (
         <DataTable 
           searchKeys={["serialNumber", "posId", "customerId"]} 
-          columns={columns} 
+          columns={columns({ openEditDialog, openDeleteDialog })} 
           data={data} 
           searchPlaceholder="بحث بالرقم التسلسلي، POSID، أو رقم العميل..." 
         />
       )}
+
+    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>تعديل بيانات الماكينة</DialogTitle>
+            </DialogHeader>
+            <Form {...editForm}>
+                <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                    <FormField control={editForm.control} name="serialNumber" render={({ field }) => (<FormItem><FormLabel>الرقم التسلسلي *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={editForm.control} name="posId" render={({ field }) => (<FormItem><FormLabel>POS ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={editForm.control} name="customerId" render={({ field }) => (<FormItem><FormLabel>رقم العميل *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={editForm.control} name="isMain" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>تعيين كـ ماكينة رئيسية للعميل</FormLabel></div></FormItem>)} />
+                    <DialogFooter>
+                        <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                        <Button type="submit">حفظ التغييرات</Button>
+                    </DialogFooter>
+                </form>
+            </Form>
+        </DialogContent>
+    </Dialog>
+
+    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+          <AlertDialogDescription>
+            سيتم حذف هذه الماكينة نهائيًا. لا يمكن التراجع عن هذا الإجراء.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete}>متابعة</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     </>
   );
 };

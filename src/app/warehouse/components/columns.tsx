@@ -24,7 +24,12 @@ export type InventoryColumn = {
   location: string;
 };
 
-export const columns: ColumnDef<InventoryColumn>[] = [
+interface ColumnsProps {
+  openEditDialog: (item: InventoryColumn) => void;
+  openDeleteDialog: (itemId: string) => void;
+}
+
+export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): ColumnDef<InventoryColumn>[] => [
   {
     accessorKey: "partName",
     header: "اسم القطعة",
@@ -66,12 +71,13 @@ export const columns: ColumnDef<InventoryColumn>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>إجراءات المخزن</DropdownMenuLabel>
-            <DropdownMenuItem>تعديل الكمية</DropdownMenuItem>
-            <DropdownMenuItem>تغيير الموقع</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">حذف من المخزن</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEditDialog(item)}>تعديل الكمية/الموقع</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDeleteDialog(item.id)} className="text-destructive">حذف من المخزن</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
 ];
+
+    

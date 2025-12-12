@@ -6,7 +6,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PlusCircle, Upload, Download, Loader2, X } from "lucide-react";
-import { collection } from "firebase/firestore";
+import { collection, doc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -21,7 +21,7 @@ import {
 
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
+import { useFirestore, addDocumentNonBlocking, useUser, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,16 @@ import {
   DialogClose,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -62,6 +72,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
 import { columns, type SparePartColumn } from "./spare-parts-columns";
+import { SparePart } from "@/lib/types";
 
 interface SparePartClientProps {
   data: SparePartColumn[];
@@ -86,6 +97,10 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
   const [isAddPartOpen, setAddPartOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingPart, setEditingPart] = useState<SparePartColumn | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingPartId, setDeletingPartId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -95,6 +110,10 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
       defaultCost: 0,
       compatibleModels: [],
     },
+  });
+
+  const editForm = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
   });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -230,6 +249,53 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
     }
   };
 
+  const onEditPartSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!firestore || !editingPart) return;
+    try {
+      const partDoc = doc(firestore, 'spareParts', editingPart.id);
+      updateDocumentNonBlocking(partDoc, values);
+      toast({
+        title: "تم تحديث قطعة الغيار بنجاح",
+      });
+      setEditingPart(null);
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating spare part:", error);
+      toast({
+        variant: "destructive",
+        title: "حدث خطأ",
+        description: "فشلت عملية تحديث قطعة الغيار.",
+      });
+    }
+  };
+
+  const openEditDialog = (part: SparePartColumn) => {
+    setEditingPart(part);
+    editForm.reset({
+      name: part.name,
+      partNumber: part.partNumber || '',
+      defaultCost: part.defaultCost,
+      compatibleModels: part.compatibleModels,
+    });
+    setIsEditDialogOpen(true);
+  };
+  
+  const openDeleteDialog = (partId: string) => {
+    setDeletingPartId(partId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!firestore || !deletingPartId) return;
+    const partDoc = doc(firestore, 'spareParts', deletingPartId);
+    deleteDocumentNonBlocking(partDoc);
+    toast({
+      title: "تم الحذف بنجاح",
+    });
+    setDeletingPartId(null);
+    setIsDeleteDialogOpen(false);
+  };
+
 
   return (
     <>
@@ -345,9 +411,11 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                    <FormField
                     control={form.control}
                     name="compatibleModels"
-                    render={({ field }) => (
+                    render={() => (
                       <FormItem>
-                        <FormLabel>الموديلات المتوافقة *</FormLabel>
+                        <div className="mb-4">
+                          <FormLabel>الموديلات المتوافقة *</FormLabel>
+                        </div>
                           <ScrollArea className="h-40 w-full rounded-md border p-4">
                             {availableModels.map((model) => (
                                 <FormField
@@ -383,21 +451,27 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                 />
                             ))}
                         </ScrollArea>
-                        <div className="pt-2">
-                          {(field.value || []).map((model) => (
-                            <Badge key={model} variant="secondary" className="mr-1 mb-1">
-                              {model}
-                              <button
-                                type="button"
-                                className="mr-1 h-4 w-4 text-primary hover:text-destructive"
-                                onClick={() => field.onChange(field.value.filter((m) => m !== model))}
-                              >
-                                <X size={14} />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
                         <FormMessage />
+                        <Controller
+                            control={form.control}
+                            name="compatibleModels"
+                            render={({ field }) => (
+                                <div className="pt-2">
+                                  {field.value.map((model) => (
+                                    <Badge key={model} variant="secondary" className="mr-1 mb-1">
+                                      {model}
+                                      <button
+                                        type="button"
+                                        className="mr-1 h-4 w-4 text-primary hover:text-destructive"
+                                        onClick={() => field.onChange(field.value.filter((m) => m !== model))}
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </Badge>
+                                  ))}
+                                </div>
+                            )}
+                        />
                       </FormItem>
                     )}
                   />
@@ -466,36 +540,208 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
       ) : (
         <DataTable 
           searchKeys={["name", "partNumber", "compatibleModels"]} 
-          columns={columns} 
+          columns={columns({ openEditDialog, openDeleteDialog })} 
           data={data} 
           searchPlaceholder="بحث بالاسم، رقم القطعة، أو الموديل..." 
         />
       )}
       </CardContent>
     </Card>
+    
+    {/* Edit Dialog */}
+    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>تعديل قطعة غيار</DialogTitle>
+            <DialogDescription>
+              تحديث بيانات قطعة الغيار.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditPartSubmit)}>
+            <div className="max-h-[60vh] overflow-y-auto p-1 space-y-4">
+                {/* Form fields are identical to add form, but using editForm */}
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={editForm.control} name="name" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>اسم القطعة *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={editForm.control} name="partNumber" render={({ field }) => (<FormItem><FormLabel>رقم القطعة (SKU)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={editForm.control} name="defaultCost" render={({ field }) => (<FormItem><FormLabel>السعر *</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                </div>
+                <FormField
+                    control={editForm.control}
+                    name="compatibleModels"
+                    render={() => (
+                        <FormItem>
+                            <div className="mb-4"><FormLabel>الموديلات المتوافقة *</FormLabel></div>
+                            <ScrollArea className="h-40 w-full rounded-md border p-4">
+                                {availableModels.map((model) => (<FormField key={model} control={editForm.control} name="compatibleModels" render={({ field }) => (<FormItem key={model} className="flex flex-row items-start space-x-3 space-y-0 mb-4"><FormControl><Checkbox checked={field.value?.includes(model)} onCheckedChange={(checked) => {return checked ? field.onChange([...field.value, model]) : field.onChange(field.value?.filter((value) => value !== model))}} /></FormControl><FormLabel className="font-normal">{model}</FormLabel></FormItem>)} />))}
+                            </ScrollArea>
+                            <FormMessage />
+                            <Controller
+                                control={editForm.control}
+                                name="compatibleModels"
+                                render={({ field }) => (
+                                    <div className="pt-2">
+                                      {field.value.map((model) => (
+                                        <Badge key={model} variant="secondary" className="mr-1 mb-1">{model}<button type="button" className="mr-1 h-4 w-4 text-primary hover:text-destructive" onClick={() => field.onChange(field.value.filter((m) => m !== model))}><X size={14} /></button></Badge>
+                                      ))}
+                                    </div>
+                                )}
+                            />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            <DialogFooter className="pt-4">
+                <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                <Button type="submit" disabled={editForm.formState.isSubmitting}>
+                    {editForm.formState.isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                    حفظ التعديلات
+                </Button>
+            </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+    </Dialog>
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+          <AlertDialogDescription>
+            سيتم حذف قطعة الغيار هذه نهائيًا. لا يمكن التراجع عن هذا الإجراء.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete}>متابعة</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     </>
   );
   
     
 
-
-
     
+```
+  </change>
+  <change>
+    <file>src/app/settings/components/spare-parts-columns.tsx</file>
+    <content><![CDATA[
+"use client";
 
-    
+import { ColumnDef } from "@tanstack/react-table";
+import { MoreHorizontal } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
+export type SparePartColumn = {
+  id: string;
+  partNumber?: string;
+  name: string;
+  compatibleModels: string[];
+  defaultCost: number;
+};
 
+interface ColumnsProps {
+  openEditDialog: (part: SparePartColumn) => void;
+  openDeleteDialog: (partId: string) => void;
+}
 
+export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): ColumnDef<SparePartColumn>[] => [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="تحديد الكل"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="تحديد الصف"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "name",
+    header: "اسم القطعة",
+  },
+  {
+    accessorKey: "partNumber",
+    header: "رقم القطعة (SKU)",
+  },
+  {
+    accessorKey: "compatibleModels",
+    header: "الموديلات المتوافقة",
+    cell: ({ row }) => {
+      const models = row.original.compatibleModels;
+      return (
+        <div className="flex flex-wrap gap-1">
+          {models.map((model) => (
+            <Badge key={model} variant="secondary">
+              {model}
+            </Badge>
+          ))}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "defaultCost",
+    header: "التكلفة (السعر)",
+    cell: ({ row }) => {
+        const amount = parseFloat(row.getValue("defaultCost"))
+        const formatted = new Intl.NumberFormat("ar-EG", {
+            style: "currency",
+            currency: "EGP"
+        }).format(amount);
 
-    
-
-    
-
-    
-
-    
-
-    
+        return <div className="font-medium">{formatted}</div>
+    }
+  },
+  {
+    id: "actions",
+    cell: ({ row }) => {
+      const part = row.original;
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">فتح القائمة</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(part.id)}
+            >
+              نسخ معرف القطعة
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEditDialog(part)}>تعديل</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDeleteDialog(part.id)} className="text-destructive">حذف</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
+  },
+];
 
     

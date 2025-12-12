@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
@@ -24,6 +25,7 @@ export default function PosMachinesPage() {
     model: item.model || 'N/A',
     manufacturer: item.manufacturer || 'N/A',
     customerId: item.customerId,
+    isMain: item.isMain || false,
   })) : [];
   
   const isLoading = isUserLoading || isMachinesLoading;
@@ -34,3 +36,5 @@ export default function PosMachinesPage() {
     </div>
   );
 }
+
+    

@@ -5,9 +5,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PlusCircle, Search } from "lucide-react";
-import { collection, serverTimestamp } from "firebase/firestore";
-import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { PlusCircle, Search, Loader2 } from "lucide-react";
+import { collection, serverTimestamp, doc } from "firebase/firestore";
+import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, useUser } from "@/firebase";
 
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -39,13 +50,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { PosMachine, Customer } from "@/lib/types";
+import { PosMachine, Customer, User } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 
 import { columns, type RequestColumn } from "./columns";
 
 interface RequestClientProps {
   data: RequestColumn[];
+  technicians: User[];
   findCustomerMachines: (customerId: string) => Promise<PosMachine[]>;
   findCustomer: (customerId: string) => Promise<Customer | null>;
   isLoading: boolean;
@@ -55,13 +67,22 @@ const searchSchema = z.object({
   customerId: z.string().min(1, { message: "رقم العميل مطلوب." }),
 });
 
-export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomerMachines, findCustomer, isLoading }) => {
+export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians, findCustomerMachines, findCustomer, isLoading }) => {
   const firestore = useFirestore();
+  const { user } = useUser();
   const [open, setOpen] = useState(false);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerMachines, setCustomerMachines] = useState<PosMachine[]>([]);
   const [selectedMachine, setSelectedMachine] = useState<PosMachine | null>(null);
   const [complaint, setComplaint] = useState("");
+
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [isCloseOpen, setIsCloseOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<RequestColumn | null>(null);
+  const [selectedTechnician, setSelectedTechnician] = useState('');
+  const [closingNotes, setClosingNotes] = useState('');
 
   const searchForm = useForm<z.infer<typeof searchSchema>>({
     resolver: zodResolver(searchSchema),
@@ -134,6 +155,60 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
     setSelectedMachine(null);
     setCustomer(null);
     setComplaint("");
+  }
+
+  const openDetailsDialog = (request: RequestColumn) => {
+    setSelectedRequest(request);
+    setIsDetailsOpen(true);
+  }
+  const openAssignDialog = (request: RequestColumn) => {
+    setSelectedRequest(request);
+    setIsAssignOpen(true);
+  }
+  const openCloseDialog = (request: RequestColumn) => {
+      setSelectedRequest(request);
+      setIsCloseOpen(true);
+  }
+  const openCancelDialog = (requestId: string) => {
+    const request = data.find(r => r.id === requestId);
+    setSelectedRequest(request || null);
+    setIsCancelOpen(true);
+  }
+
+  const confirmAssign = () => {
+    if (!firestore || !selectedRequest || !selectedTechnician) return;
+    const requestDoc = doc(firestore, 'maintenanceRequests', selectedRequest.id);
+    const tech = technicians.find(t => t.id === selectedTechnician);
+    updateDocumentNonBlocking(requestDoc, {
+      technician: tech?.displayName,
+      status: 'In Progress'
+    });
+    toast({ title: "تم تعيين الفني بنجاح" });
+    setIsAssignOpen(false);
+    setSelectedTechnician('');
+  };
+
+  const confirmClose = () => {
+      if (!firestore || !selectedRequest || !user) return;
+      const requestDoc = doc(firestore, 'maintenanceRequests', selectedRequest.id);
+      updateDocumentNonBlocking(requestDoc, {
+          status: 'Closed',
+          actionTaken: closingNotes,
+          closingUserId: user.uid,
+          closingUserName: user.displayName || user.email,
+          closingTimestamp: serverTimestamp()
+      });
+      toast({ title: "تم إغلاق الطلب بنجاح" });
+      setIsCloseOpen(false);
+      setClosingNotes('');
+  };
+
+  const confirmCancel = () => {
+    if (!firestore || !selectedRequest) return;
+    const requestDoc = doc(firestore, 'maintenanceRequests', selectedRequest.id);
+    updateDocumentNonBlocking(requestDoc, { status: 'Cancelled' });
+    toast({ title: "تم إلغاء الطلب" });
+    setIsCancelOpen(false);
   }
 
   return (
@@ -227,12 +302,94 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, findCustomer
           </Dialog>
         </div>
       </div>
+      {isLoading ? (
+          <div className="flex items-center justify-center p-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="mr-4 text-muted-foreground">...جاري تحميل البيانات</p>
+          </div>
+      ) : (
       <DataTable
         searchKeys={["customerName", "id", "machineModel"]}
-        columns={columns}
+        columns={columns({ openDetailsDialog, openAssignDialog, openCloseDialog, openCancelDialog })}
         data={data}
         searchPlaceholder="بحث باسم العميل، رقم الطلب، أو موديل الماكينة..."
       />
+      )}
+
+      {/* Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تفاصيل طلب #{selectedRequest?.id.substring(0, 6)}</DialogTitle>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4 text-sm">
+                <p><strong>العميل:</strong> {selectedRequest.customerName}</p>
+                <p><strong>الماكينة:</strong> {selectedRequest.machineModel} ({selectedRequest.machineManufacturer})</p>
+                <p><strong>الفني:</strong> {selectedRequest.technician}</p>
+                <p><strong>الحالة:</strong> {selectedRequest.status}</p>
+                <p><strong>تاريخ الإنشاء:</strong> {selectedRequest.createdAt}</p>
+                <p><strong>الشكوى:</strong></p>
+                <p className="p-2 bg-muted rounded-md">{selectedRequest.complaint}</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Assign Technician Dialog */}
+      <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
+        <DialogContent>
+            <DialogHeader><DialogTitle>تعيين فني للطلب #{selectedRequest?.id.substring(0, 6)}</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+                <p>اختر فنيًا من القائمة لتعيينه لهذا الطلب.</p>
+                <Select onValueChange={setSelectedTechnician}>
+                    <SelectTrigger><SelectValue placeholder="اختر فني..." /></SelectTrigger>
+                    <SelectContent>
+                        {technicians.map(tech => (
+                            <SelectItem key={tech.id} value={tech.id}>{tech.displayName}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                <Button onClick={confirmAssign} disabled={!selectedTechnician}>تعيين</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Close Request Dialog */}
+      <Dialog open={isCloseOpen} onOpenChange={setIsCloseOpen}>
+        <DialogContent>
+            <DialogHeader><DialogTitle>إغلاق الطلب #{selectedRequest?.id.substring(0, 6)}</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+                <p>الرجاء كتابة الإجراء الذي تم اتخاذه لحل المشكلة.</p>
+                <Textarea placeholder="اكتب الإجراء المتخذ هنا..." value={closingNotes} onChange={(e) => setClosingNotes(e.target.value)} />
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">إلغاء</Button></DialogClose>
+                <Button onClick={confirmClose} disabled={!closingNotes}>إغلاق الطلب</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={isCancelOpen} onOpenChange={setIsCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد من الإلغاء؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم تغيير حالة الطلب إلى "ملغى". لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel}>تأكيد الإلغاء</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
+
+    

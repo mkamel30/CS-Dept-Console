@@ -6,8 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PlusCircle, Loader2 } from "lucide-react";
-import { collection } from "firebase/firestore";
-import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -21,6 +21,16 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -56,6 +66,10 @@ export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLo
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isAddTechnicianOpen, setAddTechnicianOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTechnician, setEditingTechnician] = useState<TechnicianColumn | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingTechnicianId, setDeletingTechnicianId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,6 +77,10 @@ export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLo
       displayName: "",
       role: "Technician",
     },
+  });
+
+  const editForm = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
   });
 
   const onAddTechnicianSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -92,6 +110,51 @@ export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLo
         description: "فشلت عملية إضافة الفني. يرجى المحاولة مرة أخرى.",
       });
     }
+  };
+
+  const onEditTechnicianSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!firestore || !editingTechnician) return;
+    try {
+      const userDoc = doc(firestore, 'users', editingTechnician.id);
+      updateDocumentNonBlocking(userDoc, {
+          displayName: values.displayName,
+          role: values.role
+      });
+      toast({
+        title: "تم تحديث الفني بنجاح",
+      });
+      setEditingTechnician(null);
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating technician:", error);
+      toast({
+        variant: "destructive",
+        title: "حدث خطأ",
+        description: "فشلت عملية تحديث الفني.",
+      });
+    }
+  };
+
+  const openEditDialog = (technician: TechnicianColumn) => {
+    setEditingTechnician(technician);
+    editForm.reset(technician);
+    setIsEditDialogOpen(true);
+  };
+  
+  const openDeleteDialog = (technicianId: string) => {
+    setDeletingTechnicianId(technicianId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!firestore || !deletingTechnicianId) return;
+    const userDoc = doc(firestore, 'users', deletingTechnicianId);
+    deleteDocumentNonBlocking(userDoc);
+    toast({
+      title: "تم الحذف بنجاح",
+    });
+    setDeletingTechnicianId(null);
+    setIsDeleteDialogOpen(false);
   };
 
   return (
@@ -175,11 +238,78 @@ export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLo
       ) : (
         <DataTable 
           searchKeys={["displayName", "email", "role"]} 
-          columns={columns} 
+          columns={columns({ openEditDialog, openDeleteDialog })} 
           data={data} 
           searchPlaceholder="بحث بالاسم أو البريد الإلكتروني أو الدور..." 
         />
       )}
+
+    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>تعديل بيانات الفني</DialogTitle>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditTechnicianSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="displayName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>اسم الفني *</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>الدور (الوظيفة) *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            <SelectItem value="Technician">فني</SelectItem>
+                            <SelectItem value="CustomerService">خدمة عملاء</SelectItem>
+                            <SelectItem value="Manager">مدير</SelectItem>
+                            <SelectItem value="Admin">مسؤول</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="pt-4">
+                <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                <Button type="submit" disabled={editForm.formState.isSubmitting}>
+                  {editForm.formState.isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                  حفظ التعديلات
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+          <AlertDialogDescription>
+            سيتم حذف هذا الفني نهائيًا. لا يمكن التراجع عن هذا الإجراء.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete}>متابعة</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     </>
   );
 };
+
+    

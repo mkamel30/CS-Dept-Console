@@ -13,16 +13,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Customer } from "@/lib/types";
 
-export type CustomerColumn = {
-  id: string;
-  bkcode: string;
-  client_name: string;
-  address: string;
-  telephone_1: string;
+export type CustomerColumn = Omit<Customer, 'operating_date' | 'papers_date'> & {
+    operating_date?: string;
+    papers_date?: string;
 };
 
-export const columns: ColumnDef<CustomerColumn>[] = [
+interface ColumnsProps {
+  openEditDialog: (customer: CustomerColumn) => void;
+  openDeleteDialog: (customerId: string) => void;
+}
+
+export const columns = ({ openEditDialog, openDeleteDialog }: ColumnsProps): ColumnDef<CustomerColumn>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -77,11 +80,13 @@ export const columns: ColumnDef<CustomerColumn>[] = [
             >
               نسخ معرف العميل
             </DropdownMenuItem>
-            <DropdownMenuItem>تعديل</DropdownMenuItem>
-            <DropdownMenuItem>حذف</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEditDialog(customer)}>تعديل</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDeleteDialog(customer.id)} className="text-destructive">حذف</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
 ];
+
+    

@@ -19,10 +19,7 @@ export default function CustomersPage() {
   const { data: customersData, isLoading: isCustomersLoading } = useCollection<Customer>(customersQuery);
 
   const formattedCustomers: CustomerColumn[] = customersData ? customersData.map(item => ({
-    id: item.id,
-    bkcode: item.bkcode,
-    client_name: item.client_name,
-    address: item.address,
+    ...item,
     telephone_1: item.telephone_1 || 'N/A',
   })) : [];
   
@@ -34,3 +31,5 @@ export default function CustomersPage() {
     </div>
   );
 }
+
+    

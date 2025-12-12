@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PlusCircle, Upload, Download, Loader2 } from "lucide-react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, doc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
+import { useFirestore, addDocumentNonBlocking, useUser, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -71,6 +82,11 @@ export const SimCardClient: React.FC<SimCardClientProps> = ({ data, isLoading })
   const [isConfirming, setIsConfirming] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
 
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingSim, setEditingSim] = useState<SimCardColumn | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingSimId, setDeletingSimId] = useState<string | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -78,6 +94,10 @@ export const SimCardClient: React.FC<SimCardClientProps> = ({ data, isLoading })
       type: "",
       customerId: "",
     },
+  });
+  
+  const editForm = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
   });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,7 +257,48 @@ export const SimCardClient: React.FC<SimCardClientProps> = ({ data, isLoading })
       });
     }
   };
+  
+  const onEditSimSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!firestore || !editingSim) return;
+    try {
+      const simDoc = doc(firestore, 'simCards', editingSim.id);
+      updateDocumentNonBlocking(simDoc, values);
+      toast({
+        title: "تم تحديث الشريحة بنجاح",
+      });
+      setEditingSim(null);
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating SIM card:", error);
+      toast({
+        variant: "destructive",
+        title: "حدث خطأ",
+        description: "فشلت عملية تحديث الشريحة.",
+      });
+    }
+  };
 
+  const openEditDialog = (sim: SimCardColumn) => {
+    setEditingSim(sim);
+    editForm.reset(sim);
+    setIsEditDialogOpen(true);
+  };
+  
+  const openDeleteDialog = (simId: string) => {
+    setDeletingSimId(simId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!firestore || !deletingSimId) return;
+    const simDoc = doc(firestore, 'simCards', deletingSimId);
+    deleteDocumentNonBlocking(simDoc);
+    toast({
+      title: "تم الحذف بنجاح",
+    });
+    setDeletingSimId(null);
+    setIsDeleteDialogOpen(false);
+  };
 
   return (
     <>
@@ -400,11 +461,49 @@ export const SimCardClient: React.FC<SimCardClientProps> = ({ data, isLoading })
       ) : (
         <DataTable 
           searchKeys={["serialNumber", "type", "customerId"]} 
-          columns={columns} 
+          columns={columns({ openEditDialog, openDeleteDialog })} 
           data={data} 
           searchPlaceholder="بحث بالرقم التسلسلي، النوع، أو رقم العميل..." 
         />
       )}
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+            <DialogTitle>تعديل شريحة SIM</DialogTitle>
+            </DialogHeader>
+            <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSimSubmit)} className="space-y-4">
+                <FormField control={editForm.control} name="serialNumber" render={({ field }) => (<FormItem><FormLabel>الرقم التسلسلي *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={editForm.control} name="type" render={({ field }) => (<FormItem><FormLabel>نوع الشريحة *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={editForm.control} name="customerId" render={({ field }) => (<FormItem><FormLabel>رقم العميل *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <DialogFooter className="pt-4">
+                <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                <Button type="submit" disabled={editForm.formState.isSubmitting}>
+                    {editForm.formState.isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                    حفظ التعديلات
+                </Button>
+                </DialogFooter>
+            </form>
+            </Form>
+        </DialogContent>
+      </Dialog>
+
+    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+          <AlertDialogDescription>
+            سيتم حذف هذه الشريحة نهائيًا. لا يمكن التراجع عن هذا الإجراء.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete}>متابعة</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     </>
   );
 };

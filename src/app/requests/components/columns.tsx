@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 export type RequestColumn = {
@@ -27,6 +28,13 @@ export type RequestColumn = {
   createdAt: string;
   complaint: string;
 };
+
+interface ColumnsProps {
+  openDetailsDialog: (request: RequestColumn) => void;
+  openAssignDialog: (request: RequestColumn) => void;
+  openCloseDialog: (request: RequestColumn) => void;
+  openCancelDialog: (requestId: string) => void;
+}
 
 const statusVariantMap: Record<RequestColumn['status'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
   'Open': 'default',
@@ -55,7 +63,7 @@ const priorityTextMap: Record<RequestColumn['priority'], string> = {
 };
 
 
-export const columns: ColumnDef<RequestColumn>[] = [
+export const columns = ({ openDetailsDialog, openAssignDialog, openCloseDialog, openCancelDialog }: ColumnsProps): ColumnDef<RequestColumn>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -143,17 +151,17 @@ export const columns: ColumnDef<RequestColumn>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(request.id)}
-            >
-              نسخ معرف الطلب
-            </DropdownMenuItem>
-            <DropdownMenuItem>عرض التفاصيل</DropdownMenuItem>
-            <DropdownMenuItem>تعيين فني</DropdownMenuItem>
-            <DropdownMenuItem>إغلاق الطلب</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDetailsDialog(request)}>عرض التفاصيل</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => openAssignDialog(request)} disabled={request.status !== 'Open'}>تعيين فني</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openCloseDialog(request)} disabled={request.status !== 'In Progress'}>إغلاق الطلب</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => openCancelDialog(request.id)} className="text-destructive" disabled={request.status === 'Closed' || request.status === 'Cancelled'}>إلغاء الطلب</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
 ];
+
+    

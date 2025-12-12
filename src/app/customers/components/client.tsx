@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PlusCircle, Upload, Download, Loader2 } from "lucide-react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, doc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
+import { useFirestore, addDocumentNonBlocking, useUser, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -79,6 +90,10 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
   const [isAddCustomerOpen, setAddCustomerOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<CustomerColumn | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingCustomerId, setDeletingCustomerId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -94,6 +109,10 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
       telephone_2: "",
       notes: "",
     },
+  });
+
+  const editForm = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
   });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,6 +285,60 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
         description: "فشلت عملية إضافة العميل. يرجى المحاولة مرة أخرى.",
       });
     }
+  };
+
+  const onEditCustomerSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!firestore || !editingCustomer) return;
+    try {
+      const customerDoc = doc(firestore, 'customers', editingCustomer.id);
+      updateDocumentNonBlocking(customerDoc, values);
+      toast({
+        title: "تم تحديث العميل بنجاح",
+      });
+      setEditingCustomer(null);
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      toast({
+        variant: "destructive",
+        title: "حدث خطأ",
+        description: "فشلت عملية تحديث العميل.",
+      });
+    }
+  };
+
+  const openEditDialog = (customer: CustomerColumn) => {
+    setEditingCustomer(customer);
+    const customerData = data.find(c => c.id === customer.id);
+    if (customerData) {
+      editForm.reset({
+          ...customerData,
+          national_id: customerData.national_id || '',
+          supply_office: customerData.supply_office || '',
+          dept: customerData.dept || '',
+          contact_person: customerData.contact_person || '',
+          telephone_1: customerData.telephone_1 || '',
+          telephone_2: customerData.telephone_2 || '',
+          notes: customerData.notes || ''
+      });
+    }
+    setIsEditDialogOpen(true);
+  };
+  
+  const openDeleteDialog = (customerId: string) => {
+    setDeletingCustomerId(customerId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!firestore || !deletingCustomerId) return;
+    const customerDoc = doc(firestore, 'customers', deletingCustomerId);
+    deleteDocumentNonBlocking(customerDoc);
+    toast({
+      title: "تم الحذف بنجاح",
+    });
+    setDeletingCustomerId(null);
+    setIsDeleteDialogOpen(false);
   };
 
   return (
@@ -525,11 +598,63 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({ data, isLoading 
       ) : (
         <DataTable 
           searchKeys={["bkcode", "client_name"]} 
-          columns={columns} 
+          columns={columns({ openEditDialog, openDeleteDialog })} 
           data={data} 
           searchPlaceholder="بحث برقم العميل أو اسم العميل..." 
         />
       )}
+
+    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>تعديل بيانات العميل</DialogTitle>
+            <DialogDescription>
+              قم بتحديث بيانات العميل هنا.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditCustomerSubmit)}>
+              <div className="max-h-[60vh] overflow-y-auto p-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={editForm.control} name="bkcode" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>رقم العميل *</FormLabel><FormControl><Input {...field} disabled /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={editForm.control} name="client_name" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>اسم العميل *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={editForm.control} name="address" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>العنوان *</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={editForm.control} name="national_id" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>الرقم القومي</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={editForm.control} name="telephone_1" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>رقم الهاتف 1</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={editForm.control} name="supply_office" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>مكتب التموين</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={editForm.control} name="dept" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>إدارة التموين</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={editForm.control} name="contact_person" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>الشخص المسؤول</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={editForm.control} name="telephone_2" render={({ field }) => (<FormItem className="col-span-1"><FormLabel>رقم الهاتف 2</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={editForm.control} name="notes" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>ملاحظات</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                </div>
+              </div>
+              <DialogFooter className="pt-4">
+                <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
+                <Button type="submit" disabled={editForm.formState.isSubmitting}>
+                  {editForm.formState.isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                  حفظ التعديلات
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+    </Dialog>
+
+    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+          <AlertDialogDescription>
+            سيتم حذف هذا العميل نهائيًا. لا يمكن التراجع عن هذا الإجراء.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete}>متابعة</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     </>
   );
 }
