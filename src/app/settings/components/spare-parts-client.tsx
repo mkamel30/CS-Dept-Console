@@ -301,7 +301,8 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onAddPartSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onAddPartSubmit)}>
+                <div className="max-h-[60vh] overflow-y-auto p-1 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -406,8 +407,7 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                       </FormItem>
                     )}
                   />
-
-
+                  </div>
                   <DialogFooter className="pt-4">
                     <DialogClose asChild>
                       <Button type="button" variant="outline">إلغاء</Button>
@@ -483,3 +483,4 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
   );
 
     
+
