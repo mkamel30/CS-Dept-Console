@@ -97,7 +97,6 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
   const [isAddPartOpen, setAddPartOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
-  const [isPopoverOpen, setPopoverOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -355,7 +354,7 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>الموديلات المتوافقة *</FormLabel>
-                          <Popover open={isPopoverOpen} onOpenChange={setPopoverOpen}>
+                          <Popover>
                             <PopoverTrigger asChild>
                                <FormControl>
                                 <Button
@@ -371,9 +370,10 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                <Command>
                                 <CommandInput placeholder="ابحث عن موديل..." />
+                                <CommandList>
                                   <ScrollArea className="h-48">
                                     <CommandEmpty>لا توجد نتائج.</CommandEmpty>
                                     <CommandGroup>
@@ -401,7 +401,8 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                         );
                                       })}
                                     </CommandGroup>
-                                </ScrollArea>
+                                  </ScrollArea>
+                                </CommandList>
                                </Command>
                             </PopoverContent>
                           </Popover>
@@ -505,3 +506,4 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
     
 
     
+
