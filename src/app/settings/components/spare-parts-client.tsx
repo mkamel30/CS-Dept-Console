@@ -360,9 +360,10 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                     <button
                                         type="button"
                                         className="mr-1 h-4 w-4 text-primary hover:text-destructive"
-                                        onClick={() =>
-                                            field.onChange(field.value.filter((m) => m !== model))
-                                        }
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            field.onChange(field.value.filter((m) => m !== model));
+                                        }}
                                     >
                                         <X size={14} />
                                     </button>
@@ -376,13 +377,13 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                       {availableModels.map((model) => (
                                       <CommandItem
                                           key={model}
-                                          onSelect={() => {
-                                              const currentModels = field.value;
-                                              if (currentModels.includes(model)) {
-                                                  field.onChange(currentModels.filter((m) => m !== model));
-                                              } else {
-                                                  field.onChange([...currentModels, model]);
-                                              }
+                                          onClick={(currentValue) => {
+                                            const currentModels = field.value;
+                                            if (currentModels.includes(model)) {
+                                                field.onChange(currentModels.filter((m) => m !== model));
+                                            } else {
+                                                field.onChange([...currentModels, model]);
+                                            }
                                           }}
                                       >
                                           <div
@@ -484,3 +485,6 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
 
     
 
+
+
+    
