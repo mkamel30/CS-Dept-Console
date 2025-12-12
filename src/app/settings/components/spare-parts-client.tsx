@@ -355,7 +355,7 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                 <CommandInput placeholder="ابحث عن موديل..." />
                                 <div className="mt-2">
                                 {field.value.map((model) => (
-                                    <Badge key={model} variant="secondary" className="mr-1">
+                                    <Badge key={model} variant="secondary" className="mr-1 mb-1">
                                     {model}
                                     <button
                                         type="button"
@@ -374,31 +374,33 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                   <CommandList>
                                   <CommandEmpty>لا توجد نتائج.</CommandEmpty>
                                   <CommandGroup>
-                                      {availableModels.map((model) => (
-                                      <CommandItem
-                                          key={model}
-                                          onClick={(currentValue) => {
-                                            const currentModels = field.value;
-                                            if (currentModels.includes(model)) {
-                                                field.onChange(currentModels.filter((m) => m !== model));
-                                            } else {
-                                                field.onChange([...currentModels, model]);
-                                            }
-                                          }}
-                                      >
-                                          <div
-                                          className={cn(
-                                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                              field.value.includes(model)
-                                              ? "bg-primary text-primary-foreground"
-                                              : "opacity-50 [&_svg]:invisible"
-                                          )}
-                                          >
-                                          <Check className={cn("h-4 w-4")} />
-                                          </div>
-                                          {model}
-                                      </CommandItem>
-                                      ))}
+                                      {availableModels.map((model) => {
+                                        const isSelected = field.value.includes(model);
+                                        return (
+                                        <CommandItem
+                                            key={model}
+                                            onSelect={() => {
+                                                if (isSelected) {
+                                                    field.onChange(field.value.filter((m) => m !== model));
+                                                } else {
+                                                    field.onChange([...field.value, model]);
+                                                }
+                                            }}
+                                        >
+                                            <div
+                                            className={cn(
+                                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                isSelected
+                                                ? "bg-primary text-primary-foreground"
+                                                : "opacity-50 [&_svg]:invisible"
+                                            )}
+                                            >
+                                            <Check className={cn("h-4 w-4")} />
+                                            </div>
+                                            {model}
+                                        </CommandItem>
+                                        )
+                                      })}
                                   </CommandGroup>
                                   </CommandList>
                                 </ScrollArea>
@@ -482,9 +484,11 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
     </Card>
     </>
   );
-
+  
     
 
 
+
+    
 
     
