@@ -3,8 +3,6 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { MaintenanceRequest } from '@/lib/types';
 import { format, differenceInMinutes } from 'date-fns';
-import { arabicFont } from './arabic-font.js';
-
 
 // Extend the jsPDF type definitions to include the autoTable method.
 declare module 'jspdf' {
@@ -16,13 +14,13 @@ declare module 'jspdf' {
 export function generateMaintenanceReport(request: MaintenanceRequest) {
   const doc = new jsPDF();
 
-  // Add the Amiri font to jsPDF
-  doc.addFileToVFS("Amiri-Regular.ttf", arabicFont);
-  doc.addFont("Amiri-Regular.ttf", "Amiri", "normal");
-  doc.setFont("Amiri");
+  // Set the font to Amiri for Arabic support
+  doc.setFont('Amiri', 'normal');
 
-  // Helper function to handle RTL text
+  // Helper function to handle RTL text correctly
   const rtlText = (text: string, x: number, y: number, options?: any) => {
+    // Ensure the font is set before each text call for safety
+    doc.setFont('Amiri', 'normal');
     doc.text(text, x, y, { ...options, align: 'right', lang: 'ar' });
   };
 
@@ -51,7 +49,7 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   y += 10;
 
   // Timestamps
-  const createdAt = new Date(request.createdAt);
+  const createdAt = request.createdAt ? new Date(request.createdAt) : new Date();
   const closedAt = request.closingTimestamp ? new Date(request.closingTimestamp) : null;
   let durationString = 'الطلب لم يغلق بعد';
 
@@ -89,22 +87,18 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   y += 8;
   rtlText('الشكوى:', pageWidth - margin, y);
   y += 8;
-  // Use splitTextToSize for long text blocks
   const complaintLines = doc.splitTextToSize(request.complaint || '', pageWidth - margin * 2);
-  complaintLines.forEach((line: string) => {
-      rtlText(line, pageWidth - margin, y);
-      y += 7;
-  });
+  rtlText(complaintLines, pageWidth - margin, y);
+  y += complaintLines.length * 7;
+  
 
   if (request.actionTaken) {
     y += 5;
     rtlText('الإجراء المتخذ:', pageWidth - margin, y);
     y += 8;
     const actionLines = doc.splitTextToSize(request.actionTaken, pageWidth - margin * 2);
-    actionLines.forEach((line: string) => {
-        rtlText(line, pageWidth - margin, y);
-        y += 7;
-    });
+    rtlText(actionLines, pageWidth - margin, y);
+    y += actionLines.length * 7;
   }
   
   
