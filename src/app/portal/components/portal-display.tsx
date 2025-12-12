@@ -38,7 +38,7 @@ export const CustomerPortalDisplay: React.FC<CustomerPortalDisplayProps> = ({
       <TabsContent value="devices">
         <div className="grid gap-4 md:grid-cols-2">
             <Card>
-                <CardHeader>
+                <CardHeader className="text-right">
                     <CardTitle>ماكينات نقاط البيع ({machines.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -69,7 +69,7 @@ export const CustomerPortalDisplay: React.FC<CustomerPortalDisplayProps> = ({
                 </CardContent>
             </Card>
             <Card>
-                <CardHeader>
+                <CardHeader className="text-right">
                     <CardTitle>شرائح SIM ({simCards.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -99,11 +99,11 @@ export const CustomerPortalDisplay: React.FC<CustomerPortalDisplayProps> = ({
       </TabsContent>
       <TabsContent value="details">
         <Card>
-          <CardHeader>
+          <CardHeader className="text-right">
             <CardTitle>تفاصيل العميل</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-right">
+          <CardContent className="space-y-4 text-right">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <div>
                     <p className="font-medium text-muted-foreground">رقم العميل</p>
                     <p className="font-semibold">{customer.bkcode}</p>
