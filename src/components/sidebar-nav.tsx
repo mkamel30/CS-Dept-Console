@@ -12,6 +12,7 @@ import {
   Settings,
   Building,
   Search,
+  Radio,
 } from 'lucide-react';
 import {
   SidebarHeader,
@@ -29,6 +30,7 @@ const navItems = [
   { href: '/', label: 'لوحة التحكم', icon: LayoutDashboard },
   { href: '/requests', label: 'طلبات الصيانة', icon: Wrench },
   { href: '/assets', label: 'ماكينات نقاط البيع', icon: HardDrive },
+  { href: '/sim-cards', label: 'شرائح SIM', icon: Radio },
   { href: '/customers', label: 'العملاء', icon: Building },
   { href: '/portal', label: 'بوابة العميل', icon: Search },
   { href: '/inventory', label: 'المخزون', icon: Package },
