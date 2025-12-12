@@ -4,7 +4,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { MaintenanceRequest } from '@/lib/types';
 import { format, differenceInMinutes } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arabicFont } from './arabic-font.js';
 
 
 // Extend the jsPDF type definitions to include the autoTable method.
@@ -17,20 +17,23 @@ declare module 'jspdf' {
 export function generateMaintenanceReport(request: MaintenanceRequest) {
   const doc = new jsPDF();
 
-  // Use the built-in Amiri font which supports Arabic
-  doc.setFont('Amiri', 'normal');
+  // Add the Amiri font to jsPDF
+  doc.addFileToVFS("Amiri-Regular.ttf", arabicFont);
+  doc.addFont("Amiri-Regular.ttf", "Amiri", "normal");
+  doc.setFont("Amiri");
 
   // Helper function to handle RTL text
   const rtlText = (text: string, x: number, y: number, options?: any) => {
-    // jspdf has limited RTL support, this function helps align text to the right
-    doc.text(text, x, y, { ...options, align: 'right' });
+    doc.text(text, x, y, { ...options, align: 'right', lang: 'ar' });
   };
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
 
   // Header
+  doc.setFontSize(20);
   doc.text('تقرير صيانة', pageWidth / 2, 20, { align: 'center' });
+  doc.setFontSize(12);
   rtlText(`رقم الطلب: ${request.id.substring(0, 8)}`, pageWidth - margin, 30);
   doc.text(`Date: ${format(new Date(), 'yyyy-MM-dd')}`, margin, 30);
   doc.line(margin, 35, pageWidth - margin, 35);
@@ -40,21 +43,17 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   rtlText('بيانات العميل والماكينة', pageWidth - margin, y);
   y += 10;
   
-  rtlText(`:العميل`, pageWidth - margin, y);
-  rtlText(request.customerName, pageWidth - margin - 20, y);
-  
+  rtlText(`العميل: ${request.customerName}`, pageWidth - margin, y);
   doc.text(`Customer ID: ${request.customerId}`, margin, y);
   y += 8;
 
-  rtlText(`:الماكينة`, pageWidth - margin, y);
-  rtlText(`${request.machineManufacturer || ''} ${request.machineModel || ''}`, pageWidth - margin - 20, y);
-  
+  rtlText(`الماكينة: ${request.machineManufacturer || ''} ${request.machineModel || ''}`, pageWidth - margin, y);
   doc.text(`S/N: ${request.serialNumber || 'N/A'}`, margin, y);
   y += 10;
 
   // Timestamps
-  const createdAt = request.createdAt.toDate();
-  const closedAt = request.closingTimestamp?.toDate();
+  const createdAt = new Date(request.createdAt);
+  const closedAt = request.closingTimestamp ? new Date(request.closingTimestamp) : null;
   let durationString = 'الطلب لم يغلق بعد';
 
   if (closedAt) {
@@ -89,7 +88,7 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   // Complaint and Action
   rtlText('الشكوى والإجراء المتخذ', pageWidth - margin, y);
   y += 8;
-  rtlText(':الشكوى', pageWidth - margin, y);
+  rtlText('الشكوى:', pageWidth - margin, y);
   y += 8;
   // Use splitTextToSize for long text blocks
   const complaintLines = doc.splitTextToSize(request.complaint || '', pageWidth - margin * 2);
@@ -100,7 +99,7 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
 
   if (request.actionTaken) {
     y += 5;
-    rtlText(':الإجراء المتخذ', pageWidth - margin, y);
+    rtlText('الإجراء المتخذ:', pageWidth - margin, y);
     y += 8;
     const actionLines = doc.splitTextToSize(request.actionTaken, pageWidth - margin * 2);
     actionLines.forEach((line: string) => {
@@ -112,16 +111,15 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
   
   // Used Parts Table
   if (request.usedParts && request.usedParts.length > 0) {
-    y += 10;
+    y = Math.max(y, (doc as any).lastAutoTable?.finalY || 0) + 10;
     rtlText('قطع الغيار المستخدمة', pageWidth - margin, y);
     y += 5;
 
     const head = [['الحالة', 'السعر', 'اسم القطعة']];
-    // Reverse the text for RTL rendering in autoTable
     const body = request.usedParts.map(part => [
-      (part.withCost ? 'بمقابل' : 'بدون مقابل').split('').reverse().join(''),
-      part.withCost ? `${part.cost.toFixed(2)}` : '0.00',
-      part.partName.split('').reverse().join(''),
+      part.withCost ? 'بمقابل' : 'بدون مقابل',
+      part.withCost ? new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP' }).format(part.cost) : '0.00',
+      part.partName,
     ]);
 
     doc.autoTable({
@@ -132,17 +130,13 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
       styles: {
         font: 'Amiri',
         halign: 'right',
+        cellPadding: 2,
       },
       headStyles: {
         fillColor: [41, 128, 185],
         textColor: 255,
         halign: 'center'
       },
-      didParseCell: function (data) {
-        if (data.section === 'head') {
-             data.cell.text = data.cell.text.map(t => t.split('').reverse().join(''));
-        }
-      }
     });
 
     y = (doc as any).lastAutoTable.finalY + 10;
@@ -155,7 +149,8 @@ export function generateMaintenanceReport(request: MaintenanceRequest) {
     rtlText(`رقم الإيصال: ${request.receiptNumber}`, pageWidth - margin, y);
   }
 
-  rtlText(`التكلفة الإجمالية: ${totalCost.toFixed(2)} جنيه`, pageWidth - margin, y + 8);
+  const formattedTotalCost = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP' }).format(totalCost);
+  rtlText(`التكلفة الإجمالية: ${formattedTotalCost}`, pageWidth - margin, y + 8);
   doc.text(`الفني: ${request.technician}`, margin, y + 8);
   
 
