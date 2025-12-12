@@ -61,7 +61,20 @@
         "actionTaken": {
           "type": "string",
           "description": "The procedure performed by the technician to fix the issue."
-        }
+        },
+        "usedParts": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "partId": {"type": "string"},
+                    "partName": {"type": "string"},
+                    "cost": {"type": "number"},
+                    "withCost": {"type": "boolean"}
+                }
+            }
+        },
+        "receiptNumber": { "type": "string" }
       },
       "required": [
         "customerId",
@@ -343,6 +356,35 @@
         "changedAt",
         "userId"
       ]
+    },
+    "UsedPartLog": {
+        "title": "UsedPartLog",
+        "type": "object",
+        "description": "Logs the usage of spare parts in a maintenance request.",
+        "properties": {
+            "requestId": {"type": "string"},
+            "customerId": {"type": "string"},
+            "customerName": {"type": "string"},
+            "posMachineId": {"type": "string"},
+            "technician": {"type": "string"},
+            "closedByUserId": {"type": "string"},
+            "closedAt": {"type": "string", "format": "date-time"},
+            "parts": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "partId": {"type": "string"},
+                        "partName": {"type": "string"},
+                        "quantityUsed": {"type": "number"},
+                        "withCost": {"type": "boolean"}
+                    },
+                    "required": ["partId", "partName", "quantityUsed", "withCost"]
+                }
+            },
+            "receiptNumber": {"type": "string"}
+        },
+        "required": ["requestId", "customerId", "posMachineId", "closedByUserId", "closedAt", "parts"]
     }
   },
   "auth": {
@@ -405,6 +447,12 @@
         "$ref": "#/entities/PriceChangeLog"
       },
       "description": "Logs all price changes for spare parts for auditing purposes."
+    },
+    "/usedPartLogs/{logId}": {
+        "schema": {
+            "$ref": "#/entities/UsedPartLog"
+        },
+        "description": "Logs every instance of a spare part being used in a repair."
     }
   }
 }

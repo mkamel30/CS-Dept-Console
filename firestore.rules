@@ -83,5 +83,9 @@ service cloud.firestore {
       allow read, create: if isManagerOrAdmin();
       allow update, delete: if false;
     }
+
+    match /usedPartLogs/{logId} {
+      allow read, write: if isSignedIn();
+    }
   }
 }

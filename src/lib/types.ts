@@ -19,6 +19,8 @@ export type MaintenanceRequest = {
   closingUserId?: string; // UID of the user who closed the request.
   closingUserName?: string; // Name of the user who closed the request.
   closingTimestamp?: Timestamp; // When the request was closed.
+  usedParts?: { partId: string, partName: string, cost: number, withCost: boolean }[];
+  receiptNumber?: string;
 };
 
 // Represents a customer entity. The document ID will be the bkcode.
@@ -99,6 +101,26 @@ export type PriceChangeLog = {
     changedAt: Timestamp;
     userId: string; // UID of the user who made the change
 }
+
+// Logs the usage of spare parts in a maintenance request.
+export type UsedPartLog = {
+    id: string; // Document ID
+    requestId: string;
+    customerId: string;
+    customerName: string;
+    posMachineId: string;
+    technician: string;
+    closedByUserId: string;
+    closedAt: Timestamp;
+    parts: {
+        partId: string;
+        partName: string;
+        quantityUsed: number;
+        withCost: boolean;
+    }[];
+    receiptNumber?: string;
+}
+
 
 export type Asset = {
   id: string;
