@@ -64,13 +64,13 @@ const formSchema = z.object({
   partId: z.string().min(1, { message: "يجب اختيار قطعة غيار." }),
   quantity: z.coerce.number().min(0, { message: "الكمية يجب أن تكون رقمًا موجبًا."}),
   minLevel: z.coerce.number().min(0, { message: "الحد الأدنى يجب أن يكون رقمًا موجبًا."}),
-  location: z.string().min(1, { message: "الموقع مطلوب."}),
+  location: z.string().optional(),
 });
 
 const editFormSchema = z.object({
     quantity: z.coerce.number().min(0, { message: "الكمية يجب أن تكون رقمًا موجبًا."}),
     minLevel: z.coerce.number().min(0, { message: "الحد الأدنى يجب أن يكون رقمًا موجبًا."}),
-    location: z.string().min(1, { message: "الموقع مطلوب."}),
+    location: z.string().optional(),
 });
 
 export const WarehouseClient: React.FC<WarehouseClientProps> = ({ data, spareParts, isLoading }) => {
@@ -247,7 +247,7 @@ export const WarehouseClient: React.FC<WarehouseClientProps> = ({ data, sparePar
                     name="location"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>الموقع في المخزن *</FormLabel>
+                        <FormLabel>الموقع في المخزن</FormLabel>
                         <FormControl>
                           <Input placeholder="e.g. Shelf A-1, Row 3" {...field} />
                         </FormControl>
@@ -299,7 +299,7 @@ export const WarehouseClient: React.FC<WarehouseClientProps> = ({ data, sparePar
                     <FormField control={editForm.control} name="quantity" render={({ field }) => (<FormItem><FormLabel>الكمية الحالية *</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={editForm.control} name="minLevel" render={({ field }) => (<FormItem><FormLabel>أقل كمية *</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 </div>
-                <FormField control={editForm.control} name="location" render={({ field }) => (<FormItem><FormLabel>الموقع في المخزن *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={editForm.control} name="location" render={({ field }) => (<FormItem><FormLabel>الموقع في المخزن</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <DialogFooter className="pt-4">
                     <DialogClose asChild><Button type="button" variant="outline">إلغاء</Button></DialogClose>
                     <Button type="submit" disabled={editForm.formState.isSubmitting}>
@@ -330,5 +330,3 @@ export const WarehouseClient: React.FC<WarehouseClientProps> = ({ data, sparePar
     </>
   );
 };
-
-    
