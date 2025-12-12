@@ -142,11 +142,10 @@ service cloud.firestore {
 
     /**
      * Spare parts definitions.
-     * Any authenticated user can read, but only managers/admins can write.
+     * Any authenticated user can read and write for now.
      */
     match /spareParts/{partId} {
-      allow read: if isSignedIn();
-      allow write: if isManagerOrAdmin();
+      allow read, write: if isSignedIn();
     }
     
     /**
