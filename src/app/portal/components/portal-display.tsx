@@ -45,10 +45,10 @@ export const CustomerPortalDisplay: React.FC<CustomerPortalDisplayProps> = ({
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>الرقم التسلسلي</TableHead>
-                                <TableHead>الموديل</TableHead>
-                                <TableHead>POS ID</TableHead>
-                                <TableHead>رئيسية</TableHead>
+                                <TableHead className="text-right">الرقم التسلسلي</TableHead>
+                                <TableHead className="text-right">الموديل</TableHead>
+                                <TableHead className="text-right">POS ID</TableHead>
+                                <TableHead className="text-right">رئيسية</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -76,8 +76,8 @@ export const CustomerPortalDisplay: React.FC<CustomerPortalDisplayProps> = ({
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>الرقم التسلسلي للشريحة</TableHead>
-                                <TableHead>النوع</TableHead>
+                                <TableHead className="text-right">الرقم التسلسلي للشريحة</TableHead>
+                                <TableHead className="text-right">النوع</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

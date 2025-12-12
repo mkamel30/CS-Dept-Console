@@ -245,6 +245,7 @@ export default function CustomerPortalPage() {
                         setSuggestions([]);
                     }}
                     disabled={!user || isLoading}
+                    dir="rtl"
                 >
                     <SelectTrigger id="search-type" className="w-[180px]">
                     <SelectValue placeholder="اختر نوع البحث" />
@@ -258,9 +259,9 @@ export default function CustomerPortalPage() {
             </div>
             <Button type="submit" disabled={!user || isLoading}>
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                <Search className="h-4 w-4 ml-2" />
+                <Search className="h-4 w-4 mr-2" />
               )}
               بحث
             </Button>
