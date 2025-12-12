@@ -1,3 +1,4 @@
+
 /**
  * Core Philosophy: This ruleset enforces a strict, role-based security model for a maintenance management system.
  * Access is primarily determined by whether a user is an 'Admin' or a 'Manager', with specific exceptions for
@@ -138,5 +139,25 @@ service cloud.firestore {
     match /machineParameters/{parameterId} {
       allow read, write: if isSignedIn();
     }
+
+    /**
+     * Spare parts definitions.
+     * Any authenticated user can read, but only managers/admins can write.
+     */
+    match /spareParts/{partId} {
+      allow read: if isSignedIn();
+      allow write: if isManagerOrAdmin();
+    }
+    
+    /**
+     * Inventory stock levels.
+     * Any authenticated user can read, but only managers/admins can write.
+     */
+    match /inventory/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isManagerOrAdmin();
+    }
   }
 }
+
+    

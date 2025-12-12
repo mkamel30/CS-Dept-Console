@@ -69,6 +69,27 @@ export type MachineParameter = {
   manufacturer: string;
 };
 
+// Represents the definition and properties of a spare part.
+export type SparePart = {
+  id: string; // Document ID
+  partNumber: string;
+  name: string;
+  description?: string;
+  compatibleModels: string[];
+  defaultCost: number;
+  isConsumable: boolean;
+  allowsMultiple: boolean;
+};
+
+// Represents the stock level of a specific spare part in inventory.
+export type InventoryItem = {
+  id: string; // Document ID
+  partNumber: string; // Links to SparePart
+  quantity: number;
+  minLevel: number;
+  location: string;
+};
+
 export type Asset = {
   id: string;
   name: string;
@@ -78,14 +99,6 @@ export type Asset = {
   lastMaintenance: string;
 };
 
-export type InventoryItem = {
-  id:string;
-  name: string;
-  quantity: number;
-  minLevel: number;
-  location: string;
-};
-
 export type Technician = {
   id: string;
   name: string;
@@ -93,3 +106,14 @@ export type Technician = {
   status: 'Available' | 'Busy' | 'On Leave';
   tasks: number;
 };
+
+// Represents a user of the maintenance management system.
+export type User = {
+  id: string; // Document ID
+  uid: string; // Firebase Auth UID
+  email: string;
+  displayName?: string;
+  role?: string;
+};
+
+    

@@ -242,6 +242,74 @@
         "model",
         "manufacturer"
       ]
+    },
+    "SparePart": {
+      "title": "SparePart",
+      "type": "object",
+      "description": "Represents a spare part's definition and properties.",
+      "properties": {
+        "partNumber": {
+          "type": "string",
+          "description": "The unique identifier or SKU for the spare part."
+        },
+        "name": {
+          "type": "string",
+          "description": "The common name of the spare part."
+        },
+        "description": {
+          "type": "string"
+        },
+        "compatibleModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array of machine model strings this part is compatible with."
+        },
+        "defaultCost": {
+          "type": "number",
+          "description": "The default cost of the part for invoicing."
+        },
+        "isConsumable": {
+          "type": "boolean",
+          "description": "Indicates if the part is a one-time use item."
+        },
+        "allowsMultiple": {
+          "type": "boolean",
+          "description": "Indicates if more than one unit can be used in a single repair."
+        }
+      },
+      "required": [
+        "partNumber",
+        "name"
+      ]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "type": "object",
+      "description": "Represents the stock level of a specific spare part in inventory.",
+      "properties": {
+        "partNumber": {
+          "type": "string",
+          "description": "The unique identifier for the spare part, linking to SparePart."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The current quantity in stock."
+        },
+        "minLevel": {
+          "type": "number",
+          "description": "The minimum stock level to trigger a reorder alert."
+        },
+        "location": {
+          "type": "string",
+          "description": "The physical location of the item in the warehouse (e.g., Shelf A-3)."
+        }
+      },
+      "required": [
+        "partNumber",
+        "quantity"
+      ]
     }
   },
   "auth": {
@@ -286,6 +354,20 @@
         "$ref": "#/entities/MachineParameter"
       },
       "description": "Stores rules for identifying machine models and manufacturers from serial number prefixes."
+    },
+    "/spareParts/{partId}": {
+      "schema": {
+        "$ref": "#/entities/SparePart"
+      },
+      "description": "Stores the definitions and parameters for all available spare parts."
+    },
+    "/inventory/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/InventoryItem"
+      },
+      "description": "Tracks the stock levels for each spare part."
     }
   }
 }
+
+    
