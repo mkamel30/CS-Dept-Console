@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
@@ -10,8 +11,6 @@ export default function TechniciansPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  // For now, we will assume technicians are just users.
-  // We might need to add roles later.
   const usersQuery = useMemoFirebase(
     () => (firestore && user) ? query(collection(firestore, "users")) : null,
     [firestore, user]
@@ -20,9 +19,9 @@ export default function TechniciansPage() {
   const { data: usersData, isLoading: isUsersLoading } = useCollection<UserType>(usersQuery);
 
   const formattedTechnicians: TechnicianColumn[] = usersData ? usersData.map(item => ({
-    id: item.uid,
+    id: item.id, // Now using document ID instead of uid
     displayName: item.displayName || 'N/A',
-    email: item.email,
+    email: item.email || '',
     role: item.role || 'فني',
   })) : [];
   

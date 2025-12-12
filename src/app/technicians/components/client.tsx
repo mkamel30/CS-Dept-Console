@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -6,8 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PlusCircle, Loader2 } from "lucide-react";
 import { collection } from "firebase/firestore";
-import { useFirestore, addDocumentNonBlocking, useAuth } from "@/firebase";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { useFirestore, addDocumentNonBlocking } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -30,6 +30,14 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { useToast } from "@/hooks/use-toast";
 
 import { columns, type TechnicianColumn } from "./columns";
@@ -41,52 +49,38 @@ interface TechniciansClientProps {
 
 const formSchema = z.object({
   displayName: z.string().min(1, { message: "اسم الفني مطلوب." }),
-  email: z.string().email({ message: "البريد الإلكتروني مطلوب." }),
-  password: z.string().min(6, { message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل." }),
+  role: z.string().min(1, { message: "دور الفني مطلوب." }),
 });
 
 export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLoading }) => {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const auth = useAuth();
   const [isAddTechnicianOpen, setAddTechnicianOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       displayName: "",
-      email: "",
-      password: "",
+      role: "Technician",
     },
   });
 
   const onAddTechnicianSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!firestore || !auth) return;
+    if (!firestore) return;
     try {
-      // Create user in Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      const user = userCredential.user;
-
-      // Update user profile
-      await updateProfile(user, { displayName: values.displayName });
-
-      // Add user to 'users' collection in Firestore
       const usersCollection = collection(firestore, 'users');
       const newUser = {
-        uid: user.uid,
-        email: values.email,
         displayName: values.displayName,
-        role: 'Technician', // Default role
+        role: values.role,
+        email: '', // Not creating an auth user anymore
+        uid: '',   // Not creating an auth user anymore
       };
       
-      // Use setDoc with uid as document id
-      const { setDocumentNonBlocking } = await import('@/firebase/non-blocking-updates');
-      const { doc } = await import('firebase/firestore');
-      setDocumentNonBlocking(doc(usersCollection, user.uid), newUser, { merge: true });
+      addDocumentNonBlocking(usersCollection, newUser);
 
       toast({
         title: "تمت إضافة الفني بنجاح",
-        description: `تم إنشاء حساب جديد لـ ${values.displayName}.`,
+        description: `تم إضافة ${values.displayName} إلى قائمة الفنيين.`,
       });
       form.reset();
       setAddTechnicianOpen(false);
@@ -95,9 +89,7 @@ export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLo
       toast({
         variant: "destructive",
         title: "حدث خطأ",
-        description: error.code === 'auth/email-already-in-use' 
-            ? "هذا البريد الإلكتروني مستخدم بالفعل."
-            : "فشلت عملية إضافة الفني. يرجى المحاولة مرة أخرى.",
+        description: "فشلت عملية إضافة الفني. يرجى المحاولة مرة أخرى.",
       });
     }
   };
@@ -118,7 +110,7 @@ export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLo
               <DialogHeader>
                 <DialogTitle>إضافة فني جديد</DialogTitle>
                 <DialogDescription>
-                  املأ الحقول التالية لإنشاء حساب جديد للفني.
+                  املأ الحقول التالية لإضافة فني جديد إلى النظام.
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -138,26 +130,22 @@ export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLo
                   />
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="role"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>البريد الإلكتروني *</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="email@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>كلمة المرور *</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="******" {...field} />
-                        </FormControl>
+                        <FormLabel>الدور (الوظيفة) *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="اختر دور الفني" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="Technician">فني</SelectItem>
+                                <SelectItem value="Manager">مدير</SelectItem>
+                                <SelectItem value="Admin">مسؤول</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -185,10 +173,10 @@ export const TechniciansClient: React.FC<TechniciansClientProps> = ({ data, isLo
           </div>
       ) : (
         <DataTable 
-          searchKeys={["displayName", "email"]} 
+          searchKeys={["displayName", "email", "role"]} 
           columns={columns} 
           data={data} 
-          searchPlaceholder="بحث بالاسم أو البريد الإلكتروني..." 
+          searchPlaceholder="بحث بالاسم أو البريد الإلكتروني أو الدور..." 
         />
       )}
     </>

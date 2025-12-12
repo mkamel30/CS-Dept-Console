@@ -1,3 +1,4 @@
+
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -21,6 +22,19 @@ export type TechnicianColumn = {
   email: string;
   role: string;
 };
+
+const roleVariantMap: Record<string, 'default' | 'secondary' | 'destructive'> = {
+  'Technician': 'secondary',
+  'Manager': 'default',
+  'Admin': 'destructive',
+};
+
+const roleTextMap: Record<string, string> = {
+    'Technician': 'فني',
+    'Manager': 'مدير',
+    'Admin': 'مسؤول'
+};
+
 
 export const columns: ColumnDef<TechnicianColumn>[] = [
   {
@@ -49,12 +63,16 @@ export const columns: ColumnDef<TechnicianColumn>[] = [
   {
     accessorKey: "email",
     header: "البريد الإلكتروني",
+     cell: ({ row }) => {
+        return row.original.email || <span className="text-muted-foreground">غير مسجل</span>
+    }
   },
   {
     accessorKey: "role",
     header: "الدور",
     cell: ({ row }) => {
-        return <Badge variant="outline">{row.original.role}</Badge>
+        const role = row.original.role;
+        return <Badge variant={roleVariantMap[role] || 'outline'}>{roleTextMap[role] || role}</Badge>
     }
   },
   {
