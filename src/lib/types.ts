@@ -33,6 +33,7 @@ export type Customer = {
   bk_type?: string;
   notes?: string;
   papers_date?: Timestamp;
+  isSpecial?: boolean;
 };
 
 // Represents a single POS machine owned by a customer.

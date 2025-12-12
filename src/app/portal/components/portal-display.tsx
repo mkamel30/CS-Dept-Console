@@ -1,13 +1,21 @@
 'use client';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { doc, updateDoc } from 'firebase/firestore';
 
 import { Customer, PosMachine, SimCard } from '@/lib/types';
+import { useFirestore } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -17,18 +25,93 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Loader2, Pencil } from 'lucide-react';
+
 
 interface CustomerPortalDisplayProps {
   customer: Customer;
   machines: PosMachine[];
   simCards: SimCard[];
+  onCustomerUpdate: (updatedCustomer: Customer) => void;
 }
+
+const formSchema = z.object({
+  client_name: z.string().min(1, { message: "اسم العميل مطلوب." }),
+  address: z.string().min(1, { message: "العنوان مطلوب." }),
+  national_id: z.string().optional(),
+  supply_office: z.string().optional(),
+  dept: z.string().optional(),
+  contact_person: z.string().optional(),
+  telephone_1: z.string().optional(),
+  telephone_2: z.string().optional(),
+  notes: z.string().optional(),
+  isSpecial: z.boolean().optional(),
+});
+
 
 export const CustomerPortalDisplay: React.FC<CustomerPortalDisplayProps> = ({
   customer,
   machines,
   simCards,
+  onCustomerUpdate,
 }) => {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      client_name: customer.client_name,
+      address: customer.address,
+      national_id: customer.national_id || '',
+      supply_office: customer.supply_office || '',
+      dept: customer.dept || '',
+      contact_person: customer.contact_person || '',
+      telephone_1: customer.telephone_1 || '',
+      telephone_2: customer.telephone_2 || '',
+      notes: customer.notes || '',
+      isSpecial: customer.isSpecial || false,
+    },
+  });
+
+  const {
+    handleSubmit,
+    register,
+    control,
+    formState: { isSubmitting, errors },
+  } = form;
+
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!firestore) return;
+    try {
+      const customerRef = doc(firestore, 'customers', customer.id);
+      await updateDoc(customerRef, values);
+
+      onCustomerUpdate({ ...customer, ...values });
+      
+      toast({
+        title: "تم التحديث بنجاح",
+        description: "تم تحديث بيانات العميل.",
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      toast({
+        variant: "destructive",
+        title: "حدث خطأ",
+        description: "فشلت عملية تحديث بيانات العميل.",
+      });
+    }
+  };
+
+
   return (
     <Tabs defaultValue="devices" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
@@ -98,55 +181,94 @@ export const CustomerPortalDisplay: React.FC<CustomerPortalDisplayProps> = ({
         </div>
       </TabsContent>
       <TabsContent value="details">
-        <Card>
-          <CardHeader className="text-right">
-            <CardTitle>تفاصيل العميل</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-right">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                    <p className="font-medium text-muted-foreground">رقم العميل</p>
-                    <p className="font-semibold">{customer.bkcode}</p>
-                </div>
-                 <div>
-                    <p className="font-medium text-muted-foreground">اسم العميل</p>
-                    <p className="font-semibold">{customer.client_name}</p>
-                </div>
-                 <div>
-                    <p className="font-medium text-muted-foreground">العنوان</p>
-                    <p>{customer.address}</p>
-                </div>
-                <div>
-                    <p className="font-medium text-muted-foreground">رقم الهاتف الأساسي</p>
-                    <p>{customer.telephone_1 || 'N/A'}</p>
-                </div>
-                 <div>
-                    <p className="font-medium text-muted-foreground">رقم الهاتف الإضافي</p>
-                    <p>{customer.telephone_2 || 'N/A'}</p>
-                </div>
-                 <div>
-                    <p className="font-medium text-muted-foreground">الشخص المسؤول</p>
-                    <p>{customer.contact_person || 'N/A'}</p>
-                </div>
-                 <div>
-                    <p className="font-medium text-muted-foreground">الرقم القومي</p>
-                    <p>{customer.national_id || 'N/A'}</p>
-                </div>
-                <div>
-                    <p className="font-medium text-muted-foreground">مكتب التموين</p>
-                    <p>{customer.supply_office || 'N/A'}</p>
-                </div>
-                <div>
-                    <p className="font-medium text-muted-foreground">إدارة التموين</p>
-                    <p>{customer.dept || 'N/A'}</p>
-                </div>
-                <div>
-                    <p className="font-medium text-muted-foreground">ملاحظات</p>
-                    <p>{customer.notes || 'لا يوجد'}</p>
-                </div>
-            </div>
-          </CardContent>
-        </Card>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between text-right">
+              <CardTitle>تفاصيل العميل</CardTitle>
+              {!isEditing && (
+                 <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)}>
+                    <Pencil className="h-4 w-4" />
+                    <span className="sr-only">تعديل</span>
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4 text-right">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+                  <div className="space-y-1">
+                      <Label className="font-medium text-muted-foreground">رقم العميل</Label>
+                      <Input value={customer.bkcode} disabled className="font-semibold" />
+                  </div>
+                  <div className="space-y-1">
+                      <Label htmlFor="client_name" className="font-medium text-muted-foreground">اسم العميل</Label>
+                      <Input id="client_name" {...register('client_name')} readOnly={!isEditing} />
+                      {errors.client_name && <p className="text-xs text-destructive">{errors.client_name.message}</p>}
+                  </div>
+                  <div className="space-y-1 col-span-2 md:col-span-1">
+                      <Label htmlFor="address" className="font-medium text-muted-foreground">العنوان</Label>
+                      <Textarea id="address" {...register('address')} readOnly={!isEditing} />
+                       {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
+                  </div>
+                  <div className="space-y-1">
+                      <Label htmlFor="telephone_1" className="font-medium text-muted-foreground">رقم الهاتف الأساسي</Label>
+                      <Input id="telephone_1" {...register('telephone_1')} readOnly={!isEditing} />
+                  </div>
+                  <div className="space-y-1">
+                      <Label htmlFor="telephone_2" className="font-medium text-muted-foreground">رقم الهاتف الإضافي</Label>
+                      <Input id="telephone_2" {...register('telephone_2')} readOnly={!isEditing} />
+                  </div>
+                  <div className="space-y-1">
+                      <Label htmlFor="contact_person" className="font-medium text-muted-foreground">الشخص المسؤول</Label>
+                      <Input id="contact_person" {...register('contact_person')} readOnly={!isEditing} />
+                  </div>
+                  <div className="space-y-1">
+                      <Label htmlFor="national_id" className="font-medium text-muted-foreground">الرقم القومي</Label>
+                      <Input id="national_id" {...register('national_id')} readOnly={!isEditing} />
+                  </div>
+                  <div className="space-y-1">
+                      <Label htmlFor="supply_office" className="font-medium text-muted-foreground">مكتب التموين</Label>
+                      <Input id="supply_office" {...register('supply_office')} readOnly={!isEditing} />
+                  </div>
+                  <div className="space-y-1">
+                      <Label htmlFor="dept" className="font-medium text-muted-foreground">إدارة التموين</Label>
+                      <Input id="dept" {...register('dept')} readOnly={!isEditing} />
+                  </div>
+                  <div className="space-y-1 col-span-2 md:col-span-3">
+                      <Label htmlFor="notes" className="font-medium text-muted-foreground">ملاحظات</Label>
+                      <Textarea id="notes" {...register('notes')} readOnly={!isEditing} />
+                  </div>
+                   <div className="flex items-center space-x-2 space-y-1">
+                        <Controller
+                            name="isSpecial"
+                            control={control}
+                            render={({ field }) => (
+                                <Switch
+                                    id="isSpecial"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    disabled={!isEditing}
+                                />
+                            )}
+                        />
+                        <Label htmlFor="isSpecial" className="font-medium text-muted-foreground">عميل مميز</Label>
+                    </div>
+              </div>
+            </CardContent>
+            {isEditing && (
+              <CardFooter className="flex justify-end gap-2">
+                <Button variant="outline" type="button" onClick={() => {
+                  setIsEditing(false);
+                  form.reset();
+                }}>
+                  إلغاء
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                   {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                  حفظ التغييرات
+                </Button>
+              </CardFooter>
+            )}
+          </Card>
+        </form>
       </TabsContent>
     </Tabs>
   );

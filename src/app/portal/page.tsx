@@ -199,6 +199,10 @@ export default function CustomerPortalPage() {
     setSuggestionsVisible(false);
   }
 
+  const handleCustomerUpdate = (updatedCustomer: Customer) => {
+    setCustomer(updatedCustomer);
+  };
+
   return (
     <div className="flex-1 space-y-6">
       <Card>
@@ -259,9 +263,9 @@ export default function CustomerPortalPage() {
             </div>
             <Button type="submit" disabled={!user || isLoading}>
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
               ) : (
-                <Search className="h-4 w-4 mr-2" />
+                <Search className="ml-2 h-4 w-4" />
               )}
               بحث
             </Button>
@@ -278,7 +282,7 @@ export default function CustomerPortalPage() {
         customer ? (
           <div className="space-y-4">
             <Card>
-              <CardHeader>
+              <CardHeader className='text-right'>
                   <CardTitle>بيانات العميل: {customer.client_name}</CardTitle>
                   <CardDescription>عرض تفصيلي للأجهزة والبيانات المرتبطة بالعميل صاحب رقم: {customer.bkcode}</CardDescription>
               </CardHeader>
@@ -287,6 +291,7 @@ export default function CustomerPortalPage() {
               customer={customer}
               machines={machines}
               simCards={simCards}
+              onCustomerUpdate={handleCustomerUpdate}
             />
           </div>
         ) : (
