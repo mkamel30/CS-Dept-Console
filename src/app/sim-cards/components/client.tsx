@@ -40,7 +40,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { columns, SimCardColumn } from "./columns";
+import { columns, type SimCardColumn } from "./columns";
 
 interface SimCardClientProps {
   data: SimCardColumn[];
@@ -341,5 +341,3 @@ export const SimCardClient: React.FC<SimCardClientProps> = ({ data, isLoading })
     </>
   );
 };
-
-    
