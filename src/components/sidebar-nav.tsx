@@ -13,6 +13,7 @@ import {
   Building,
   Search,
   Radio,
+  Warehouse,
 } from 'lucide-react';
 import {
   SidebarHeader,
@@ -33,7 +34,7 @@ const navItems = [
   { href: '/sim-cards', label: 'شرائح SIM', icon: Radio },
   { href: '/customers', label: 'العملاء', icon: Building },
   { href: '/portal', label: 'بوابة العميل', icon: Search },
-  { href: '/inventory', label: 'المخزون', icon: Package },
+  { href: '/inventory', label: 'قطع الغيار', icon: Package },
   { href: '/technicians', label: 'الفنيون', icon: Users },
   { href: '/reports', label: 'التقارير', icon: FileText },
 ];

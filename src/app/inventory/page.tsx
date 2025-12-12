@@ -1,22 +1,47 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Package } from "lucide-react";
+"use client";
 
-export default function InventoryPage() {
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { collection, query } from "firebase/firestore";
+import { SparePartClient } from "./components/client";
+import type { SparePartColumn } from "./components/columns";
+import type { SparePart, MachineParameter } from "@/lib/types";
+
+export default function SparePartsPage() {
+  const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
+
+  const sparePartsQuery = useMemoFirebase(
+    () => (firestore && user) ? query(collection(firestore, "spareParts")) : null,
+    [firestore, user]
+  );
+   const parametersQuery = useMemoFirebase(
+    () => firestore ? query(collection(firestore, "machineParameters")) : null,
+    [firestore]
+  );
+  
+  const { data: sparePartsData, isLoading: isSparePartsLoading } = useCollection<SparePart>(sparePartsQuery);
+  const { data: machineParameters, isLoading: isLoadingParameters } = useCollection<MachineParameter>(parametersQuery);
+
+
+  const formattedSpareParts: SparePartColumn[] = sparePartsData ? sparePartsData.map(item => ({
+    id: item.id,
+    name: item.name,
+    partNumber: item.partNumber || 'N/A',
+    compatibleModels: item.compatibleModels,
+    defaultCost: item.defaultCost,
+  })) : [];
+  
+  const isLoading = isUserLoading || isSparePartsLoading || isLoadingParameters;
+
+  const availableModels = machineParameters ? [...new Set(machineParameters.map(p => p.model))] : [];
+
   return (
-    <div className="flex items-center justify-center h-full">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader>
-          <div className="mx-auto bg-primary/10 p-4 rounded-full">
-            <Package className="h-12 w-12 text-primary" />
-          </div>
-          <CardTitle className="mt-4">إدارة المخزون وقطع الغيار</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            سيتم بناء هذه الصفحة قريبًا لتتبع كميات قطع الغيار، إدارة التنبيهات، وربطها بطلبات الصيانة.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="flex-1 space-y-4">
+      <SparePartClient 
+        data={formattedSpareParts} 
+        isLoading={isLoading}
+        availableModels={availableModels}
+      />
     </div>
   );
 }
