@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PlusCircle, Upload, Download, Loader2, X, Check } from "lucide-react";
+import { PlusCircle, Upload, Download, Loader2, X, Check, ChevronsUpDown } from "lucide-react";
 import { collection } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
@@ -52,8 +56,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Command,
   CommandEmpty,
-  CommandGroup,
   CommandInput,
+  CommandGroup,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
@@ -93,6 +97,7 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
   const [isAddPartOpen, setAddPartOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
+  const [isPopoverOpen, setPopoverOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -348,64 +353,72 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                     control={form.control}
                     name="compatibleModels"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>الموديلات المتوافقة *</FormLabel>
-                        <FormControl>
-                            <Command>
+                          <Popover open={isPopoverOpen} onOpenChange={setPopoverOpen}>
+                            <PopoverTrigger asChild>
+                               <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    "w-full justify-between",
+                                    !field.value.length && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value.length > 0 ? `${field.value.length} موديلات مختارة` : "اختر الموديلات"}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                               <Command>
                                 <CommandInput placeholder="ابحث عن موديل..." />
-                                <div className="mt-2">
-                                {field.value.map((model) => (
-                                    <Badge key={model} variant="secondary" className="mr-1 mb-1">
-                                    {model}
-                                    <button
-                                        type="button"
-                                        className="mr-1 h-4 w-4 text-primary hover:text-destructive"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            field.onChange(field.value.filter((m) => m !== model));
-                                        }}
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                    </Badge>
-                                ))}
-                                </div>
-                                <ScrollArea className="h-32">
-                                  <CommandList>
-                                  <CommandEmpty>لا توجد نتائج.</CommandEmpty>
-                                  <CommandGroup>
+                                  <ScrollArea className="h-48">
+                                    <CommandEmpty>لا توجد نتائج.</CommandEmpty>
+                                    <CommandGroup>
                                       {availableModels.map((model) => {
                                         const isSelected = field.value.includes(model);
                                         return (
-                                        <CommandItem
+                                          <CommandItem
                                             key={model}
                                             onSelect={() => {
-                                                if (isSelected) {
-                                                    field.onChange(field.value.filter((m) => m !== model));
-                                                } else {
-                                                    field.onChange([...field.value, model]);
-                                                }
+                                              if (isSelected) {
+                                                field.onChange(field.value.filter((m) => m !== model));
+                                              } else {
+                                                field.onChange([...field.value, model]);
+                                              }
                                             }}
-                                        >
-                                            <div
-                                            className={cn(
-                                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                                isSelected
-                                                ? "bg-primary text-primary-foreground"
-                                                : "opacity-50 [&_svg]:invisible"
-                                            )}
-                                            >
-                                            <Check className={cn("h-4 w-4")} />
-                                            </div>
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                isSelected ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
                                             {model}
-                                        </CommandItem>
-                                        )
+                                          </CommandItem>
+                                        );
                                       })}
-                                  </CommandGroup>
-                                  </CommandList>
+                                    </CommandGroup>
                                 </ScrollArea>
-                            </Command>
-                        </FormControl>
+                               </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <div className="pt-2">
+                          {field.value.map((model) => (
+                            <Badge key={model} variant="secondary" className="mr-1 mb-1">
+                              {model}
+                              <button
+                                type="button"
+                                className="mr-1 h-4 w-4 text-primary hover:text-destructive"
+                                onClick={() => field.onChange(field.value.filter((m) => m !== model))}
+                              >
+                                <X size={14} />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
