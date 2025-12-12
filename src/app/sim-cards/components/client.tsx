@@ -2,8 +2,11 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { PlusCircle, Upload, Download, Loader2 } from "lucide-react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -18,12 +21,37 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { columns, SimCardColumn } from "./columns";
 
 interface SimCardClientProps {
   data: SimCardColumn[];
   isLoading: boolean;
 }
+
+const formSchema = z.object({
+  serialNumber: z.string().min(1, { message: "الرقم التسلسلي مطلوب." }),
+  type: z.string().min(1, { message: "نوع الشريحة مطلوب." }),
+  customerId: z.string().min(1, { message: "رقم العميل مطلوب." }),
+});
 
 export const SimCardClient: React.FC<SimCardClientProps> = ({ data, isLoading }) => {
   const { toast } = useToast();
@@ -32,6 +60,16 @@ export const SimCardClient: React.FC<SimCardClientProps> = ({ data, isLoading })
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isAddSimOpen, setAddSimOpen] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      serialNumber: "",
+      type: "",
+      customerId: "",
+    },
+  });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -137,15 +175,113 @@ export const SimCardClient: React.FC<SimCardClientProps> = ({ data, isLoading })
      XLSX.writeFile(wb, "Current_SimCards_Data.xlsx");
   };
 
+  const onAddSimSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!firestore) return;
+    try {
+      const simCardsCollection = collection(firestore, 'simCards');
+      // Check for duplicates
+      const existingQuery = await getDocs(query(collection(firestore, "simCards"), where("serialNumber", "==", values.serialNumber)));
+      if (!existingQuery.empty) {
+        toast({
+          variant: "destructive",
+          title: "الرقم التسلسلي موجود بالفعل",
+          description: "هذا الرقم مسجل لشريحة أخرى. يرجى استخدام رقم فريد.",
+        });
+        return;
+      }
+      
+      addDocumentNonBlocking(simCardsCollection, values);
+      toast({
+        title: "تمت إضافة الشريحة بنجاح",
+        description: `تم حفظ الشريحة ${values.serialNumber} في قاعدة البيانات.`,
+      });
+      form.reset();
+      setAddSimOpen(false);
+    } catch (error) {
+      console.error("Error adding SIM card:", error);
+      toast({
+        variant: "destructive",
+        title: "حدث خطأ",
+        description: "فشلت عملية إضافة الشريحة. يرجى المحاولة مرة أخرى.",
+      });
+    }
+  };
+
+
   return (
     <>
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">شرائح SIM ({data.length})</h2>
         <div className="flex items-center space-x-2">
-          <Button disabled={isLoading || isProcessing} onClick={() => alert("سيتم تفعيل هذه الميزة قريباً.")}>
-            <PlusCircle className="ml-2 h-4 w-4" />
-            إضافة شريحة يدوياً
-          </Button>
+           <Dialog open={isAddSimOpen} onOpenChange={setAddSimOpen}>
+            <DialogTrigger asChild>
+              <Button disabled={isLoading || isProcessing}>
+                <PlusCircle className="ml-2 h-4 w-4" />
+                إضافة شريحة يدوياً
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>إضافة شريحة SIM جديدة</DialogTitle>
+                <DialogDescription>
+                  املأ الحقول التالية لحفظ بيانات شريحة جديدة.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onAddSimSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="serialNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الرقم التسلسلي *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 8920..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>نوع الشريحة *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Vodafone, Orange" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="customerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>رقم العميل (BKCODE) *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 12345" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter className="pt-4">
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline">إلغاء</Button>
+                    </DialogClose>
+                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                      {form.formState.isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                      إضافة الشريحة
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" disabled={isLoading || isProcessing}>
@@ -205,3 +341,5 @@ export const SimCardClient: React.FC<SimCardClientProps> = ({ data, isLoading })
     </>
   );
 };
+
+    
