@@ -2,10 +2,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PlusCircle, Upload, Download, Loader2, X, ChevronsUpDown, Check } from "lucide-react";
+import { PlusCircle, Upload, Download, Loader2, X, ChevronsUpDown } from "lucide-react";
 import { collection } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
@@ -44,14 +44,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -71,6 +63,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 import { columns, type SparePartColumn } from "./spare-parts-columns";
@@ -356,63 +349,56 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                       <FormItem>
                         <FormLabel>الموديلات المتوافقة *</FormLabel>
                         <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                className={cn(
-                                  "w-full justify-between",
-                                  !field.value?.length && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value?.length > 0
-                                  ? `${field.value.length} موديلات مختارة`
-                                  : "اختر الموديلات"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                           <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                               <Command>
-                                   <CommandInput placeholder="ابحث عن موديل..." />
-                                   <CommandList>
-                                       <CommandEmpty>لم يتم العثور على موديلات.</CommandEmpty>
-                                       <CommandGroup>
-                                           <ScrollArea className="h-48">
-                                               {availableModels.map((model) => {
-                                                   const isSelected = field.value?.includes(model);
-                                                   return (
-                                                       <CommandItem
-                                                            key={model}
-                                                            value={model}
-                                                            onSelect={(currentValue) => {
-                                                                const selected = field.value || [];
-                                                                if (isSelected) {
-                                                                    field.onChange(selected.filter((m) => m !== model));
-                                                                } else {
-                                                                    field.onChange([...selected, model]);
-                                                                }
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    isSelected ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {model}
-                                                        </CommandItem>
-                                                   )
-                                               })}
-                                           </ScrollArea>
-                                       </CommandGroup>
-                                   </CommandList>
-                               </Command>
-                           </PopoverContent>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className={cn(
+                                    "w-full justify-between",
+                                    !field.value?.length && "text-muted-foreground"
+                                    )}
+                                >
+                                    {field.value?.length > 0
+                                    ? `${field.value.length} موديلات مختارة`
+                                    : "اختر الموديلات"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <ScrollArea className="h-48">
+                                    <div className="p-4">
+                                    {availableModels.map((model) => (
+                                        <div key={model} className="flex items-center space-x-2 space-y-1">
+                                        <Checkbox
+                                            id={model}
+                                            checked={field.value?.includes(model)}
+                                            onCheckedChange={(checked) => {
+                                            const currentModels = field.value || [];
+                                            if (checked) {
+                                                field.onChange([...currentModels, model]);
+                                            } else {
+                                                field.onChange(
+                                                currentModels.filter((value) => value !== model)
+                                                );
+                                            }
+                                            }}
+                                        />
+                                        <label
+                                            htmlFor={model}
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                        >
+                                            {model}
+                                        </label>
+                                        </div>
+                                    ))}
+                                    </div>
+                                </ScrollArea>
+                            </PopoverContent>
                         </Popover>
                          <div className="pt-2">
-                          {field.value.map((model) => (
+                          {(field.value || []).map((model) => (
                             <Badge key={model} variant="secondary" className="mr-1 mb-1">
                               {model}
                               <button
@@ -515,5 +501,7 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
 
 
 
+
+    
 
     
