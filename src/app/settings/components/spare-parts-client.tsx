@@ -481,6 +481,5 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
     </Card>
     </>
   );
-};
 
     
