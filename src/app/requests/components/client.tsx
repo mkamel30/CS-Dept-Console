@@ -314,21 +314,17 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
         await batch.commit();
         toast({ title: "تم إغلاق الطلب وتحديث المخزن بنجاح" });
 
-        // Generate and open PDF
-        const fullRequestData: MaintenanceRequest = {
-            ...selectedRequest,
-            id: selectedRequest.id,
-            customerId: data.find(r => r.id === selectedRequest.id)?.customerId || '',
-            createdAt: Timestamp.fromDate(new Date(selectedRequest.createdAt)), // Convert back to Timestamp
-            closingTimestamp: Timestamp.now(), // Approximate for PDF
-            actionTaken: closingNotes,
-            usedParts: finalUsedParts,
-            receiptNumber: receiptNumber,
-            status: 'Closed', // Correct type
-            priority: selectedRequest.priority, // Correct type
+        // Find the full, updated request data to send to the report generator
+        const updatedRequestData = {
+          ...selectedRequest,
+          status: 'Closed' as const,
+          actionTaken: closingNotes,
+          closingTimestamp: new Date().toISOString(), // Use client time for immediate report
+          usedParts: finalUsedParts,
+          receiptNumber: receiptNumber,
         };
 
-        generateMaintenanceReport(fullRequestData);
+        handlePrintReport(updatedRequestData);
 
     } catch (error) {
         console.error("Error closing request:", error);
@@ -673,5 +669,3 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
     </>
   );
 };
-
-    
