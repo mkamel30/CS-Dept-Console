@@ -18,6 +18,7 @@ import {
 
 export type RequestColumn = {
   id: string;
+  customerId: string;
   posMachineId: string;
   machineModel: string;
   machineManufacturer: string;
@@ -28,6 +29,8 @@ export type RequestColumn = {
   technician: string;
   createdAt: string;
   complaint: string;
+  actionTaken?: string;
+  closingTimestamp?: string;
 };
 
 interface ColumnsProps {
@@ -164,5 +167,3 @@ export const columns = ({ openDetailsDialog, openAssignDialog, openCloseDialog, 
     },
   },
 ];
-
-    

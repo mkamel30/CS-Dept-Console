@@ -6,8 +6,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PlusCircle, Search, Loader2 } from "lucide-react";
-import { collection, serverTimestamp, doc, writeBatch, query, where, getDocs } from "firebase/firestore";
+import { collection, serverTimestamp, doc, writeBatch, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, useUser } from "@/firebase";
+import { differenceInMinutes } from 'date-fns';
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -55,6 +56,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { PosMachine, Customer, User, SparePart, InventoryItem, MaintenanceRequest } from "@/lib/types";
 import { Label } from "@/components/ui/label";
+import { generateMaintenanceReport } from "./report-generator";
 
 import { columns, type RequestColumn } from "./columns";
 
@@ -221,14 +223,16 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
     const requestDocRef = doc(firestore, 'maintenanceRequests', selectedRequest.id);
     const batch = writeBatch(firestore);
 
-    // 1. Update the maintenance request
+    const closingTimestamp = serverTimestamp();
     const finalUsedParts = repairType === 'with_parts' ? selectedParts : [];
+
+    // 1. Update the maintenance request
     batch.update(requestDocRef, {
         status: 'Closed',
         actionTaken: closingNotes,
         closingUserId: user.uid,
         closingUserName: user.displayName || user.email,
-        closingTimestamp: serverTimestamp(),
+        closingTimestamp: closingTimestamp,
         usedParts: finalUsedParts,
         receiptNumber: receiptNumber,
     });
@@ -279,7 +283,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
             posMachineId: selectedRequest.posMachineId,
             technician: selectedRequest.technician,
             closedByUserId: user.uid,
-            closedAt: serverTimestamp(),
+            closedAt: closingTimestamp,
             parts: selectedParts.map(p => ({
                 partId: p.partId,
                 partName: p.partName,
@@ -293,6 +297,23 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
     try {
         await batch.commit();
         toast({ title: "تم إغلاق الطلب وتحديث المخزن بنجاح" });
+
+        // Generate and open PDF
+        const fullRequestData: MaintenanceRequest = {
+            ...selectedRequest,
+            id: selectedRequest.id,
+            customerId: data.find(r => r.id === selectedRequest.id)?.customerId || '',
+            createdAt: Timestamp.fromDate(new Date(selectedRequest.createdAt)), // Convert back to Timestamp
+            closingTimestamp: Timestamp.now(), // Approximate for PDF
+            actionTaken: closingNotes,
+            usedParts: finalUsedParts,
+            receiptNumber: receiptNumber,
+            status: 'Closed', // Correct type
+            priority: selectedRequest.priority, // Correct type
+        };
+
+        generateMaintenanceReport(fullRequestData);
+
     } catch (error) {
         console.error("Error closing request:", error);
         toast({ variant: 'destructive', title: "خطأ", description: "فشل إغلاق الطلب. قد تكون هناك مشكلة في كميات المخزن." });
@@ -442,20 +463,64 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
 
       {/* Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>تفاصيل طلب #{selectedRequest?.id.substring(0, 6)}</DialogTitle>
           </DialogHeader>
           {selectedRequest && (
-            <div className="space-y-4 text-sm">
-                <p><strong>العميل:</strong> {selectedRequest.customerName}</p>
-                <p><strong>الماكينة:</strong> {selectedRequest.machineModel} ({selectedRequest.machineManufacturer})</p>
-                <p><strong>رقم الماكينة:</strong> {selectedRequest.serialNumber}</p>
-                <p><strong>الفني:</strong> {selectedRequest.technician}</p>
-                <p><strong>الحالة:</strong> {selectedRequest.status}</p>
+            <div className="space-y-4 text-sm max-h-[70vh] overflow-y-auto p-1">
+                <div className="grid grid-cols-2 gap-4">
+                  <p><strong>العميل:</strong> {selectedRequest.customerName}</p>
+                  <p><strong>الفني:</strong> {selectedRequest.technician}</p>
+                  <p><strong>الماكينة:</strong> {selectedRequest.machineModel} ({selectedRequest.machineManufacturer})</p>
+                  <p><strong>رقم الماكينة:</strong> {selectedRequest.serialNumber}</p>
+                  <p><strong>الحالة:</strong> <Badge variant={
+                    selectedRequest.status === 'Open' ? 'default' :
+                    selectedRequest.status === 'In Progress' ? 'secondary' :
+                    selectedRequest.status === 'Cancelled' ? 'destructive' : 'outline'
+                  }>{selectedRequest.status}</Badge></p>
+                  <p><strong>الأولوية:</strong> <Badge variant={
+                      selectedRequest.priority === 'High' ? 'destructive' :
+                      selectedRequest.priority === 'Medium' ? 'default' : 'secondary'
+                  }>{selectedRequest.priority}</Badge></p>
+                </div>
+                
                 <p><strong>تاريخ الإنشاء:</strong> {selectedRequest.createdAt}</p>
-                <p><strong>الشكوى:</strong></p>
-                <p className="p-2 bg-muted rounded-md">{selectedRequest.complaint}</p>
+                
+                <div>
+                  <p><strong>الشكوى:</strong></p>
+                  <p className="p-2 bg-muted rounded-md mt-1">{selectedRequest.complaint}</p>
+                </div>
+
+                {selectedRequest.status === 'Closed' && (
+                  <>
+                    <hr/>
+                    <div>
+                      <p><strong>الإجراء المتخذ:</strong></p>
+                      <p className="p-2 bg-muted rounded-md mt-1">{selectedRequest.actionTaken || 'لم يتم تسجيل إجراء.'}</p>
+                    </div>
+                     <p><strong>تاريخ الإغلاق:</strong> {selectedRequest.closingTimestamp || 'غير متاح'}</p>
+                     <p><strong>مدة الطلب:</strong> {
+                        (() => {
+                           if (!selectedRequest.createdAt || !selectedRequest.closingTimestamp) return 'غير متاحة';
+                           try {
+                             const created = new Date(selectedRequest.createdAt);
+                             const closed = new Date(selectedRequest.closingTimestamp);
+                             const duration = differenceInMinutes(closed, created);
+                             if (isNaN(duration)) return 'تاريخ غير صالح';
+                             const days = Math.floor(duration / (60 * 24));
+                             const hours = Math.floor((duration % (60*24)) / 60);
+                             const minutes = duration % 60;
+                             let result = '';
+                             if(days > 0) result += `${days} يوم `;
+                             if(hours > 0) result += `${hours} ساعة `;
+                             if(minutes > 0) result += `${minutes} دقيقة`;
+                             return result.trim() || 'أقل من دقيقة';
+                           } catch(e) { return "خطأ في حساب المدة"}
+                        })()
+                      }</p>
+                  </>
+                )}
             </div>
           )}
         </DialogContent>
@@ -592,5 +657,3 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
     </>
   );
 };
-
-    

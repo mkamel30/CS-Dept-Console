@@ -36,19 +36,23 @@ export default function RequestsPage() {
 
 
   const formattedRequests: RequestColumn[] = requestsData ? requestsData.map(item => {
-    const date = item.createdAt?.toDate();
+    const createdAtDate = item.createdAt?.toDate();
+    const closingDate = item.closingTimestamp?.toDate();
     return {
       id: item.id,
+      customerId: item.customerId,
       posMachineId: item.posMachineId,
       customerName: item.customerName,
       machineModel: item.machineModel || 'N/A',
       machineManufacturer: item.machineManufacturer || 'N/A',
-      serialNumber: item.serialNumber || 'N/A', // Add this
+      serialNumber: item.serialNumber || 'N/A',
       complaint: item.complaint,
       status: item.status,
       priority: item.priority,
       technician: item.technician,
-      createdAt: date && isValid(date) ? format(date, "yyyy/MM/dd hh:mm a") : 'N/A',
+      createdAt: createdAtDate && isValid(createdAtDate) ? format(createdAtDate, "yyyy/MM/dd hh:mm a") : 'N/A',
+      actionTaken: item.actionTaken,
+      closingTimestamp: closingDate && isValid(closingDate) ? format(closingDate, "yyyy/MM/dd hh:mm a") : undefined,
     };
   }) : [];
   
