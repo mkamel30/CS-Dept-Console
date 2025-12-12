@@ -43,6 +43,7 @@ export default function RequestsPage() {
       customerName: item.customerName,
       machineModel: item.machineModel || 'N/A',
       machineManufacturer: item.machineManufacturer || 'N/A',
+      serialNumber: item.serialNumber || 'N/A', // Add this
       complaint: item.complaint,
       status: item.status,
       priority: item.priority,

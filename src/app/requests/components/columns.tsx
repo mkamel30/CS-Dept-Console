@@ -21,6 +21,7 @@ export type RequestColumn = {
   posMachineId: string;
   machineModel: string;
   machineManufacturer: string;
+  serialNumber: string;
   customerName: string;
   status: 'Open' | 'In Progress' | 'Closed' | 'Cancelled';
   priority: 'Low' | 'Medium' | 'High';

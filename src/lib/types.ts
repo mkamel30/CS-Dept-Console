@@ -9,6 +9,7 @@ export type MaintenanceRequest = {
   customerName: string;
   machineModel?: string;
   machineManufacturer?: string;
+  serialNumber?: string;
   createdAt: Timestamp; // Firestore Timestamp
   status: 'Open' | 'In Progress' | 'Closed' | 'Cancelled';
   priority: 'Low' | 'Medium' | 'High';

@@ -53,7 +53,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { PosMachine, Customer, User, SparePart, InventoryItem } from "@/lib/types";
+import { PosMachine, Customer, User, SparePart, InventoryItem, MaintenanceRequest } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 
 import { columns, type RequestColumn } from "./columns";
@@ -159,12 +159,13 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
       customerName: customer.client_name,
       machineModel: selectedMachine.model || 'N/A',
       machineManufacturer: selectedMachine.manufacturer || 'N/A',
+      serialNumber: selectedMachine.serialNumber, // Add this
       status: 'Open',
       priority: 'Medium',
       technician: 'غير معين',
       createdAt: serverTimestamp(),
       complaint: complaint,
-    };
+    } as Omit<MaintenanceRequest, 'id'>;
 
     const requestsCollection = collection(firestore, 'maintenanceRequests');
     addDocumentNonBlocking(requestsCollection, newRequest);
@@ -449,6 +450,7 @@ export const RequestClient: React.FC<RequestClientProps> = ({ data, technicians,
             <div className="space-y-4 text-sm">
                 <p><strong>العميل:</strong> {selectedRequest.customerName}</p>
                 <p><strong>الماكينة:</strong> {selectedRequest.machineModel} ({selectedRequest.machineManufacturer})</p>
+                <p><strong>الرقم التسلسلي:</strong> {selectedRequest.serialNumber}</p>
                 <p><strong>الفني:</strong> {selectedRequest.technician}</p>
                 <p><strong>الحالة:</strong> {selectedRequest.status}</p>
                 <p><strong>تاريخ الإنشاء:</strong> {selectedRequest.createdAt}</p>
