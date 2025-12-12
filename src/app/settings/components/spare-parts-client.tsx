@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PlusCircle, Upload, Download, Loader2, X, ChevronsUpDown } from "lucide-react";
+import { PlusCircle, Upload, Download, Loader2, X, ChevronsUpDown, Check } from "lucide-react";
 import { collection } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -53,7 +62,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -365,39 +373,43 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <ScrollArea className="h-48">
-                              <div className="p-2 space-y-1">
-                                {availableModels.map((model) => (
-                                  <div
-                                    key={model}
-                                    className="flex items-center space-x-2 rounded-md p-2 hover:bg-accent"
-                                  >
-                                    <Checkbox
-                                      id={`model-${model}`}
-                                      checked={field.value?.includes(model)}
-                                      onCheckedChange={(checked) => {
-                                        const currentValue = field.value || [];
-                                        return checked
-                                          ? field.onChange([...currentValue, model])
-                                          : field.onChange(
-                                              currentValue.filter(
-                                                (value) => value !== model
-                                              )
-                                            );
-                                      }}
-                                    />
-                                    <label
-                                      htmlFor={`model-${model}`}
-                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                    >
-                                      {model}
-                                    </label>
-                                  </div>
-                                ))}
-                              </div>
-                            </ScrollArea>
-                          </PopoverContent>
+                           <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                               <Command>
+                                   <CommandInput placeholder="ابحث عن موديل..." />
+                                   <CommandList>
+                                       <CommandEmpty>لم يتم العثور على موديلات.</CommandEmpty>
+                                       <CommandGroup>
+                                           <ScrollArea className="h-48">
+                                               {availableModels.map((model) => {
+                                                   const isSelected = field.value?.includes(model);
+                                                   return (
+                                                       <CommandItem
+                                                            key={model}
+                                                            value={model}
+                                                            onSelect={(currentValue) => {
+                                                                const selected = field.value || [];
+                                                                if (isSelected) {
+                                                                    field.onChange(selected.filter((m) => m !== model));
+                                                                } else {
+                                                                    field.onChange([...selected, model]);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    isSelected ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {model}
+                                                        </CommandItem>
+                                                   )
+                                               })}
+                                           </ScrollArea>
+                                       </CommandGroup>
+                                   </CommandList>
+                               </Command>
+                           </PopoverContent>
                         </Popover>
                          <div className="pt-2">
                           {field.value.map((model) => (
@@ -502,3 +514,6 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
 
 
 
+
+
+    
