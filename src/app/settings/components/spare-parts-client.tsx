@@ -65,6 +65,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 import { columns, type SparePartColumn } from "./spare-parts-columns";
 
@@ -284,7 +285,12 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
       </Dialog>
 
       <div className="flex items-center justify-end space-x-2 pb-4">
-           <Dialog open={isAddPartOpen} onOpenChange={setAddPartOpen}>
+           <Dialog open={isAddPartOpen} onOpenChange={(isOpen) => {
+              setAddPartOpen(isOpen);
+              if (!isOpen) {
+                form.reset();
+              }
+           }}>
             <DialogTrigger asChild>
               <Button disabled={isLoading || isProcessing}>
                 <PlusCircle className="ml-2 h-4 w-4" />
@@ -367,43 +373,38 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
                                 </FormControl>
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <ScrollArea className="h-48">
-                                    <div className="p-4">
-                                    {availableModels.map((model) => (
-                                        <FormField
-                                            key={model}
-                                            control={form.control}
-                                            name="compatibleModels"
-                                            render={({ field }) => {
-                                                return (
-                                                <FormItem
-                                                    key={model}
-                                                    className="flex flex-row items-start space-x-3 space-y-0"
-                                                >
-                                                    <FormControl>
-                                                    <Checkbox
-                                                        checked={field.value?.includes(model)}
-                                                        onCheckedChange={(checked) => {
-                                                        return checked
-                                                            ? field.onChange([...field.value, model])
-                                                            : field.onChange(
-                                                                field.value?.filter(
-                                                                (value) => value !== model
-                                                                )
-                                                            )
-                                                        }}
-                                                    />
-                                                    </FormControl>
-                                                    <FormLabel className="font-normal">
-                                                    {model}
-                                                    </FormLabel>
-                                                </FormItem>
-                                                )
-                                            }}
-                                        />
-                                    ))}
-                                    </div>
-                                </ScrollArea>
+                               <Command>
+                                <CommandInput placeholder="بحث عن موديل..." />
+                                <CommandList>
+                                  <CommandEmpty>لم يتم العثور على موديلات.</CommandEmpty>
+                                  <CommandGroup>
+                                    <ScrollArea className="h-48">
+                                      {availableModels.map((model) => (
+                                        <CommandItem
+                                          key={model}
+                                          onSelect={(e) => {
+                                            e.preventDefault();
+                                            const selected = field.value || [];
+                                            const isSelected = selected.includes(model);
+                                            field.onChange(
+                                              isSelected
+                                                ? selected.filter((m) => m !== model)
+                                                : [...selected, model]
+                                            );
+                                          }}
+                                        >
+                                          <Checkbox
+                                            checked={field.value?.includes(model)}
+                                            className="mr-2"
+                                            readOnly // Checkbox is for visual feedback only
+                                          />
+                                          <span>{model}</span>
+                                        </CommandItem>
+                                      ))}
+                                    </ScrollArea>
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
                             </PopoverContent>
                         </Popover>
                          <div className="pt-2">
@@ -510,6 +511,8 @@ export const SparePartsClient: React.FC<SparePartClientProps> = ({ data, isLoadi
 
 
 
+
+    
 
     
 
