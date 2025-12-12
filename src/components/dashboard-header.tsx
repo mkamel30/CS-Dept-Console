@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet"
 import { usePathname } from "next/navigation"
 import { SidebarNav } from "./sidebar-nav"
 
@@ -109,6 +109,10 @@ export function DashboardHeader() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="sm:max-w-xs dark">
+            <SheetHeader className="hidden">
+              <SheetTitle>القائمة الرئيسية</SheetTitle>
+              <SheetDescription>تنقل بين صفحات التطبيق المختلفة.</SheetDescription>
+            </SheetHeader>
             <SidebarNav isMobile={true} />
           </SheetContent>
         </Sheet>
